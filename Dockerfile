@@ -27,6 +27,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # نسخ كود الخادم وملفات الواجهة
 COPY core_server /app
 COPY samir.ico /app/samir.ico
+COPY entrypoint.py /app/entrypoint.py
 
 # إنشاء مجلدات البيانات والوسائط
 RUN mkdir -p /app/data /app/projects /app/data/sandbox /app/uploads
@@ -34,7 +35,8 @@ RUN mkdir -p /app/data /app/projects /app/data/sandbox /app/uploads
 EXPOSE 10000
 
 # تشغيل خادم سمير السحابي مباشرة عبر uvicorn على 0.0.0.0
-CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-10000}
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-10000}"]
+
 
 
 
