@@ -630,6 +630,11 @@ class AIOrchestrator:
         )
 
         # ── الاختيار الذكي التلقائي للنموذج ──────────────────────────────
+        task_info = _detect_task_type(
+            user_text=user_text,
+            has_visual_media=has_visual_media,
+            has_attachments=bool(attachments),
+        )
         routing_reason = ""
         if provider_name and provider_name != "auto" and provider_name in self.providers:
             # المستخدم حدد نموذجاً يدوياً عبر الـ API — نحترم اختياره
@@ -637,11 +642,6 @@ class AIOrchestrator:
             routing_reason = f"تحديد يدوي: {_MODEL_LABELS.get(provider_name, provider_name)}"
             logger.info(f"Manual provider override: {provider_name}")
         else:
-            task_info = _detect_task_type(
-                user_text=user_text,
-                has_visual_media=has_visual_media,
-                has_attachments=bool(attachments),
-            )
             auto_provider_name, routing_reason = _pick_provider_for_task(task_info, self.providers)
             provider = self.providers.get(auto_provider_name) or self.get_provider()
             logger.info(
