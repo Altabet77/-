@@ -4,6 +4,7 @@ import time
 import base64
 import logging
 from pathlib import Path
+from typing import Optional, Dict, Any, List, Union
 try:
     from PIL import Image
 except ImportError:
