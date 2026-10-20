@@ -27,7 +27,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # نسخ كود الخادم وملفات الواجهة
 COPY core_server /app
 COPY samir.ico /app/samir.ico
-COPY entrypoint.py /app/entrypoint.py
 
 # إنشاء مجلدات البيانات والوسائط
 RUN mkdir -p /app/data /app/projects /app/data/sandbox /app/uploads
