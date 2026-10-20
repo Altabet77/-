@@ -219,7 +219,9 @@ async def get_db() -> AsyncGenerator[aiosqlite.Connection, None]:
 async def init_database():
     """تهيئة قاعدة البيانات وإنشاء الجداول المطلوبة"""
     logger.info(f"Initializing database at: {settings.DB_PATH}")
+    Path(settings.DB_PATH).parent.mkdir(parents=True, exist_ok=True)
     async with aiosqlite.connect(settings.DB_PATH) as db:
+
         await db.executescript(INIT_DB_SQL)
         await db.executescript(SEED_MODES_SQL)
         # التأكد من وجود عمود password_hash في قواعد البيانات القديمة
