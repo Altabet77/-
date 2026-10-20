@@ -6,11 +6,14 @@ services:
     plan: free
     healthCheckPath: /health
     envVars:
+      - key: PORT
+        value: 10000
       - key: DEFAULT_AI_PROVIDER
         value: duckai
       - key: GEMINI_API_KEY
         sync: false
       - key: GROQ_API_KEY
         sync: false
+
 
 
