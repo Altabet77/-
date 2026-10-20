@@ -9,12 +9,9 @@ services:
       - key: PORT
         value: 8000
       - key: DEFAULT_AI_PROVIDER
-        value: gemini
+        value: duckai
       - key: GEMINI_API_KEY
         sync: false
       - key: GROQ_API_KEY
         sync: false
-    disk:
-      name: samir-data
-      mountPath: /app/data
-      sizeGB: 1
+
