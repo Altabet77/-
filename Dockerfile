@@ -9,7 +9,8 @@ FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONIOENCODING=utf-8
-ENV PORT=8000
+ENV PORT=10000
+
 
 WORKDIR /app
 
@@ -30,8 +31,9 @@ COPY samir.ico /app/samir.ico
 # إنشاء مجلدات البيانات والوسائط
 RUN mkdir -p /app/data /app/projects /app/data/sandbox /app/uploads
 
-EXPOSE 8000 10000
+EXPOSE 10000
 
-# تشغيل خادم سمير السحابي 24/7 عبر run_server.py ليتوافق مع أي منفذ سحابي
+# تشغيل خادم سمير السحابي 24/7 عبر run_server.py
 CMD ["python", "run_server.py"]
+
 
