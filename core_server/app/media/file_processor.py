@@ -4,10 +4,13 @@ import time
 import base64
 import logging
 from pathlib import Path
-from typing import Dict, Any, Optional, List
-from PIL import Image
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
 
 logger = logging.getLogger("samir.media.processor")
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 UPLOADS_DIR = BASE_DIR / "data" / "uploads"
