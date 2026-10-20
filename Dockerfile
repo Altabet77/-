@@ -30,7 +30,8 @@ COPY samir.ico /app/samir.ico
 # إنشاء مجلدات البيانات والوسائط
 RUN mkdir -p /app/data /app/projects /app/data/sandbox /app/uploads
 
-EXPOSE 8000
+EXPOSE 8000 10000
 
-# تشغيل خادم سمير السحابي 24/7
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# تشغيل خادم سمير السحابي 24/7 عبر run_server.py ليتوافق مع أي منفذ سحابي
+CMD ["python", "run_server.py"]
+
