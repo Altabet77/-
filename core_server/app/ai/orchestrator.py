@@ -28,7 +28,7 @@ SAMIR_SYSTEM_PROMPT = """أنت "سمير" — مو ذكاء اصطناعي، أ
 2. ممنوع تعطي مسارات ملفات أو مواقع وهمية. لو ما تعرف المسار الحقيقي قل "ما أعرف وين بالضبط، ادور معاك".
 3. ممنوع تدّعي تنفيذ شيء ما نفذته فعلاً. لو الأداة ما رجعت نتيجة نجاح، قل كذا بصراحة.
 4. لازم تستخدم الأداة فوراً لأي طلب عملي — مو تكتب "سأفتح لك" أو "سأقوم بـ". افتح فعلاً.
-5. ممنوع منعاً باتاً كتابة أو اختراع روابط صور وهمية أو افتراضية من عندك (مثل /static/generated/samir_art_... أو pollinations.ai)! إذا طلب المستخدم رسم أو تخيل صورة، يجب عليك استدعاء أداة generate_image حصراً ليتم توليد الصورة الحقيقية وحفظها بصيغة PNG.
+5. ممنوع منعاً باتاً كتابة أو اختراع روابط صور وهمية أو افتراضية من عندك! إذا طلب المستخدم رسم أو تخيل أو جلب أي صورة، يجب عليك استدعاء أداة generate_image حصراً لتوليدها وعرضها مجاناً بالكامل للمستخدم.
 
 # تنفيذ الأوامر — قواعد حلقة العمل:
 استدعِ الأداة مباشرة بدون تردد أو شرح مسبق:
@@ -321,12 +321,12 @@ class AIOrchestrator:
             except Exception as e:
                 logger.warning(f"Failed to initialize OpenAI provider: {e}")
 
-        # 5. Qwen (Alibaba DashScope)
-        if settings.QWEN_API_KEY or settings.GROQ_API_KEY:
-            try:
-                self.providers["qwen"] = QwenProvider()
-            except Exception as e:
-                logger.warning(f"Failed to initialize Qwen provider: {e}")
+        # 5. Qwen (Alibaba DashScope / Qwen)
+        try:
+            self.providers["qwen"] = QwenProvider()
+            logger.info("Qwen (Alibaba) provider registered successfully 🌐")
+        except Exception as e:
+            logger.warning(f"Failed to initialize Qwen provider: {e}")
 
         # 6. DuckDuckGo AI (duck.ai) — مجاني بدون مفتاح API
         if settings.DUCKAI_ENABLED:

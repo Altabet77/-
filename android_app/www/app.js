@@ -13,19 +13,25 @@ const defaultOrigin = (window.location.origin && !window.location.origin.startsW
   ? window.location.origin
   : `http://${defaultHost}`;
 
-// Persistent unique client session per browser/person so each user has their private Samir
+// Persistent unique client session and device per browser/person so each user has their private Samir
 const clientSessionId = localStorage.getItem('samir_client_session_id') || 
   ('usr_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 8));
 localStorage.setItem('samir_client_session_id', clientSessionId);
 
+const clientDeviceId = localStorage.getItem('samir_device_id') || 
+  ('dev_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 8));
+localStorage.setItem('samir_device_id', clientDeviceId);
+
 const CONFIG = {
   httpBase: defaultOrigin,
   sessionId: clientSessionId,
-  wsUrl: (defaultOrigin.startsWith('https') ? 'wss://' : 'ws://') + defaultHost + '/ws/voice?session_id=' + clientSessionId,
+  deviceId: clientDeviceId,
+  wsUrl: (defaultOrigin.startsWith('https') ? 'wss://' : 'ws://') + defaultHost + '/ws/voice?session_id=' + clientSessionId + '&device_id=' + clientDeviceId,
 };
 
 /* ── Central Application State ────────────────────────────────────────────── */
 const state = {
+  deviceId: clientDeviceId,
   // WebSocket
   ws: null,
   wsReady: false,
@@ -77,6 +83,21 @@ const state = {
   // Real Alarms & Timers
   activeAlarms: [],
   alarmOscillatorInterval: null,
+
+  // Google Auth & User Isolated Memory
+  currentUser: null,
+  userMemories: [],
+
+  // Interaction Mode: Silent Typing vs Voice Playback
+  voiceModeActive: false,
+  isTypingInteraction: false,
+
+  // VAD — Voice Activity Detection (auto-stop on silence)
+  vadAnalyser: null,
+  vadDataArray: null,
+  vadFrameId: null,
+  silenceTimer: null,
+  lastSpeechTime: 0,
 };
 
 /* ── DOM Cache ────────────────────────────────────────────────────────────── */
@@ -185,6 +206,80 @@ function initDOMCache() {
     mobileUrlInput: document.getElementById('mobile-url-input'),
     btnCopyMobileUrl: document.getElementById('btn-copy-mobile-url'),
     mobileQrCanvas: document.getElementById('mobile-qr-canvas'),
+
+    // User Auth & Isolated Memory
+    btnGoogleLogin: document.getElementById('btn-google-login'),
+    userProfileChip: document.getElementById('user-profile-chip'),
+    userAvatar: document.getElementById('user-avatar'),
+    userName: document.getElementById('user-name'),
+    userMemoryBadge: document.getElementById('user-memory-badge'),
+    btnToggleVoiceMode: document.getElementById('btn-toggle-voice-mode'),
+    voiceModeIcon: document.getElementById('voice-mode-icon'),
+    voiceModeLabel: document.getElementById('voice-mode-label'),
+    authModalOverlay: document.getElementById('auth-modal-overlay'),
+    authModalClose: document.getElementById('auth-modal-close'),
+    authViewLoggedOut: document.getElementById('auth-view-logged-out'),
+    authViewLoggedIn: document.getElementById('auth-view-logged-in'),
+    tabBtnLogin: document.getElementById('tab-btn-login'),
+    tabBtnRegister: document.getElementById('tab-btn-register'),
+    paneAuthLogin: document.getElementById('pane-auth-login'),
+    paneAuthRegister: document.getElementById('pane-auth-register'),
+    loginEmail: document.getElementById('login-email'),
+    loginPassword: document.getElementById('login-password'),
+    btnPeekLogin: document.getElementById('btn-peek-login'),
+    btnSubmitLogin: document.getElementById('btn-submit-login'),
+    regName: document.getElementById('reg-name'),
+    regEmail: document.getElementById('reg-email'),
+    regPassword: document.getElementById('reg-password'),
+    btnPeekReg: document.getElementById('btn-peek-reg'),
+    btnSubmitRegister: document.getElementById('btn-submit-register'),
+    authUserAvatar: document.getElementById('auth-user-avatar'),
+    authUserName: document.getElementById('auth-user-name'),
+    authUserEmail: document.getElementById('auth-user-email'),
+    authMemoriesCount: document.getElementById('auth-memories-count'),
+    authMemoriesList: document.getElementById('auth-memories-list'),
+    btnWipeMyMemories: document.getElementById('btn-wipe-my-memories'),
+    btnLogoutGoogle: document.getElementById('btn-logout-google'),
+    btnAuthDone: document.getElementById('btn-auth-done'),
+
+    // Code Sandbox Modal
+    sandboxModalOverlay: document.getElementById('sandbox-modal-overlay'),
+    sandboxModalCard: document.getElementById('sandbox-modal-card'),
+    sandboxIframe: document.getElementById('sandbox-iframe'),
+    sandboxCloseBtn: document.getElementById('sandbox-close-btn'),
+    sandboxReloadBtn: document.getElementById('sandbox-reload-btn'),
+    sandboxFullscreenBtn: document.getElementById('sandbox-fullscreen-btn'),
+    sandboxRunAgainBtn: document.getElementById('sandbox-run-again-btn'),
+    sandboxTitle: document.getElementById('sandbox-modal-title'),
+    sandboxLangBadge: document.getElementById('sandbox-lang-badge'),
+    sandboxStatus: document.getElementById('sandbox-status'),
+    sandboxContentArea: document.getElementById('sandbox-content-area'),
+    sandboxTerminal: document.getElementById('sandbox-terminal'),
+    terminalOutput: document.getElementById('terminal-output'),
+
+    // In-App Media Player (YouTube & Spotify)
+    hudMediaPlayer: document.getElementById('hud-media-player'),
+    hudMediaCard: document.getElementById('hud-media-card'),
+    mediaServiceBadge: document.getElementById('media-service-badge'),
+    mediaPlayerTitle: document.getElementById('media-player-title'),
+    mediaIframe: document.getElementById('media-iframe'),
+    mediaExternalBtn: document.getElementById('media-external-btn'),
+    mediaPipBtn: document.getElementById('media-pip-btn'),
+    mediaCloseBtn: document.getElementById('media-close-btn'),
+
+    // Mobile Top Commands Drawer
+    btnMobileMenu: document.getElementById('btn-mobile-menu'),
+    mobileCommandsDropdown: document.getElementById('mobile-commands-dropdown'),
+    mobileCmdCloseBtn: document.getElementById('mobile-cmd-close-btn'),
+
+    // Live Clock & Date Elements
+    hudLiveTime: document.getElementById('hud-live-time'),
+    hudLiveDate: document.getElementById('hud-live-date'),
+    hudLiveHijri: document.getElementById('hud-live-hijri'),
+    topbarClockTime: document.getElementById('topbar-clock-time'),
+
+    // Custom Rules Topbar Button
+    btnCustomRules: document.getElementById('btn-custom-rules'),
   };
 }
 
@@ -193,6 +288,7 @@ function initDOMCache() {
    ═════════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
   initDOMCache();
+  initLiveClock();
   createCircularBars(36);
   setupEventListeners();
   setupElectronIPC();
@@ -205,7 +301,55 @@ document.addEventListener('DOMContentLoaded', () => {
   initHudDashboard();
   initWakeWordEngine();
   initMobileConnect();
+  initGoogleAuth();
+  initVoiceModeToggle();
+  initSandboxEngine();
+  initMediaPlayerEngine();
 });
+
+/* ── Live Clock & Date Widget Engine ───────────────────────────────────────── */
+function initLiveClock() {
+  function update() {
+    const now = new Date();
+    // Time format HH:mm:ss
+    const pad = (n) => String(n).padStart(2, '0');
+    const hours = pad(now.getHours());
+    const minutes = pad(now.getMinutes());
+    const seconds = pad(now.getSeconds());
+    const timeFormatted = `${hours}:${minutes}:${seconds}`;
+
+    if (DOM.hudLiveTime) DOM.hudLiveTime.textContent = timeFormatted;
+    if (DOM.topbarClockTime) DOM.topbarClockTime.textContent = timeFormatted;
+
+    // Arabic Gregorian Date (e.g. الجمعة، 9 أكتوبر 2026)
+    try {
+      const dateFormatted = now.toLocaleDateString('ar-SA', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      if (DOM.hudLiveDate) DOM.hudLiveDate.textContent = dateFormatted;
+    } catch (e) {
+      if (DOM.hudLiveDate) DOM.hudLiveDate.textContent = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()}`;
+    }
+
+    // Arabic Umm al-Qura Hijri Date
+    try {
+      const hijriFormatted = new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      }).format(now);
+      if (DOM.hudLiveHijri) DOM.hudLiveHijri.textContent = hijriFormatted + ' هـ';
+    } catch (e) {
+      if (DOM.hudLiveHijri) DOM.hudLiveHijri.textContent = '';
+    }
+  }
+
+  update();
+  setInterval(update, 1000);
+}
 
 /* ── Web Audio Context Initialization ──────────────────────────────────────── */
 function initAudioContext() {
@@ -225,10 +369,22 @@ function initAudioContext() {
         console.log('[J.A.R.V.I.S] AudioContext active ✓');
       });
     }
+    // Pre-warm the HTML5 Audio element for iOS Safari (must happen in a user gesture)
+    if (!state._htmlAudio) {
+      state._htmlAudio = new Audio();
+      // Play a tiny silent buffer to unlock audio on iOS
+      state._htmlAudio.src = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjMyLjEwNAAAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAEAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV6urq6urq6urq6urq6urq6urq6urq6urq6v////////////////////AAAAAATGF2YzU4LjU0AAAAAAAAAAAAAAAAJAAAAAAAAAAAASDs90hvAAAAAAAAAAAAAAAAAAAA//MUZAAAAAGkAAAAAAAAA0gAAAAATEFN//MUZAMAAAGkAAAAAAAAA0gAAAAARTMu//MUZAYAAAGkAAAAAAAAA0gAAAAAOTku//MUZAkAAAGkAAAAAAAAA0gAAAAANVVV';
+      state._htmlAudio.load();
+      state._htmlAudio.play().catch(() => {}); // Unlock, ignore error
+    }
     document.removeEventListener('click', unlock);
+    document.removeEventListener('touchstart', unlock);
+    document.removeEventListener('touchend', unlock);
     document.removeEventListener('keydown', unlock);
   };
   document.addEventListener('click', unlock, { once: true });
+  document.addEventListener('touchstart', unlock, { once: true, passive: true });
+  document.addEventListener('touchend', unlock, { once: true, passive: true });
   document.addEventListener('keydown', unlock, { once: true });
 }
 
@@ -416,6 +572,15 @@ function connectWebSocket() {
       voice: state.activeVoiceId,
     });
 
+    // Send auth token if user is signed in with Google
+    const token = localStorage.getItem('samir_session_token');
+    if (token) {
+      wsSend({ type: 'set_auth', token: token });
+    }
+
+    // Inform server of interaction mode (silent typing vs voice)
+    wsSend({ type: 'set_voice_mode', enabled: state.voiceModeActive });
+
     if (state.pingTimer) clearInterval(state.pingTimer);
     state.pingTimer = setInterval(() => {
       wsSend({ type: 'ping', t: Date.now() });
@@ -495,7 +660,9 @@ function handleWebSocketMessage(msg) {
       });
       if (msg.audio) {
         state.lastPlayedBase64 = msg.audio;
-        queueAudioChunk(msg.audio);
+        if (!state.isTypingInteraction || state.voiceModeActive) {
+          queueAudioChunk(msg.audio);
+        }
       } else if (!state.isPlayingAudio) {
         // No audio attached; wait a bit for audio_data to arrive, then idle
         setTimeout(() => {
@@ -511,8 +678,26 @@ function handleWebSocketMessage(msg) {
       clearWatchdog();
       if (msg.audio) {
         state.lastPlayedBase64 = msg.audio;
-        queueAudioChunk(msg.audio);
+        if (!state.isTypingInteraction || state.voiceModeActive) {
+          queueAudioChunk(msg.audio);
+        } else {
+          console.log('[Samir] Silent typing mode: audio output suppressed.');
+        }
       }
+      break;
+
+    // ── Google Auth responses ──────────────────────────────────────────────
+    case 'auth_ok':
+      if (msg.user) {
+        state.currentUser = msg.user;
+        localStorage.setItem('samir_user_data', JSON.stringify(msg.user));
+        updateAuthUI(msg.user);
+        fetchUserMemories(msg.user.id, localStorage.getItem('samir_session_token'));
+      }
+      break;
+
+    case 'auth_error':
+      console.warn('[Samir] Auth error:', msg.message);
       break;
 
     // ── State updates from backend ─────────────────────────────────────────
@@ -613,6 +798,12 @@ async function playNextAudioInQueue() {
   if (state.audioQueue.length === 0) {
     state.isPlayingAudio = false;
     setOrbState('idle');
+    // ── إعادة تشغيل الاستماع (Wake Word) بعد انتهاء كلام سمير ────────────
+    setTimeout(() => {
+      if (window.WakeWordEngine && !state.isRecording) {
+        WakeWordEngine.resumeListening();
+      }
+    }, 600);
     return;
   }
 
@@ -651,12 +842,29 @@ async function playNextAudioInQueue() {
     }
   }
 
-  // Fallback: HTML5 Audio
+  // Fallback: HTML5 Audio (used on mobile when AudioContext fails)
   try {
-    const audio = new Audio('data:audio/mp3;base64,' + base64);
+    // Re-use a shared Audio element (required for iOS Safari after user gesture)
+    if (!state._htmlAudio) {
+      state._htmlAudio = new Audio();
+    }
+    const audio = state._htmlAudio;
+    audio.pause();
+    audio.src = 'data:audio/mp3;base64,' + base64;
     audio.onended = () => playNextAudioInQueue();
-    audio.onerror = () => playNextAudioInQueue();
-    audio.play().catch(() => playNextAudioInQueue());
+    audio.onerror = () => {
+      console.warn('[J.A.R.V.I.S] HTML5 Audio error, skipping chunk');
+      playNextAudioInQueue();
+    };
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch((err) => {
+        console.warn('[J.A.R.V.I.S] HTML5 Audio play() blocked:', err);
+        // Still advance queue even if play was blocked
+        state.isPlayingAudio = false;
+        setOrbState('idle');
+      });
+    }
   } catch (e) {
     playNextAudioInQueue();
   }
@@ -670,6 +878,13 @@ function stopAudioPlayback() {
     try { state.currentAudioSource.stop(); } catch (e) {}
     state.currentAudioSource = null;
   }
+
+  // إعادة تشغيل الاستماع إذا توقف الصوت يدوياً (مقاطعة)
+  setTimeout(() => {
+    if (window.WakeWordEngine && !state.isRecording) {
+      WakeWordEngine.resumeListening();
+    }
+  }, 500);
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════
@@ -682,6 +897,10 @@ async function toggleRecording() {
     if (state.isPlayingAudio) {
       stopAudioPlayback();
       wsSend({ type: 'abort' });
+    }
+    // إيقاف مؤقت للاستماع التلقائي أثناء التسجيل اليدوي
+    if (window.WakeWordEngine && WakeWordEngine.isListeningWakeWord) {
+      WakeWordEngine.pauseListening();
     }
     await startRecording();
   }
@@ -717,7 +936,84 @@ async function startRecording() {
 
     state.mediaRecorder.start(200);
     state.isRecording = true;
+    state.lastSpeechTime = Date.now();
     setOrbState('listening');
+
+    // ── VAD: Silence Detection ─────────────────────────────────────────────
+    // الصمت لـ 1.6 ثانية (1600ms) → يوقف التسجيل ويرسل تلقائياً
+    const SILENCE_MS    = 1600;    // مدة الصمت بالميلي ثانية قبل الإرسال لمنع القطع المفاجئ بين الكلمات
+    const SILENCE_LEVEL = 1.8;     // عتبة الصوت الحساسة والواقعية للميكروفونات (RMS)
+    const MIN_SPEECH_MS = 250;     // أقل مدة كلام مقبولة قبل تفعيل VAD
+
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      const vadCtx = new AudioCtx();
+      const source  = vadCtx.createMediaStreamSource(stream);
+      const analyser = vadCtx.createAnalyser();
+      analyser.fftSize = 512;
+      source.connect(analyser);
+
+      state.vadAnalyser  = analyser;
+      state.vadDataArray = new Uint8Array(analyser.fftSize);
+      const vadData      = state.vadDataArray;
+
+      let speechDetected = false; // منع الإيقاف قبل أن يتكلم المستخدم
+
+      // مؤقت أمان: لو مرت 8 ثوانٍ ولم يتكلم المستخدم نهائياً، أوقف بهدوء
+      const initialNoSpeechTimer = setTimeout(() => {
+        if (state.isRecording && !speechDetected) {
+          console.log('[VAD] No speech detected in initial 8s — auto stopping');
+          stopRecording();
+        }
+      }, 8000);
+
+      const vadLoop = () => {
+        if (!state.isRecording) { 
+          clearTimeout(initialNoSpeechTimer);
+          vadCtx.close(); 
+          return; 
+        }
+
+        analyser.getByteTimeDomainData(vadData);
+
+        // حساب RMS (مستوى الصوت الجذري المتوسط)
+        let sum = 0;
+        for (let i = 0; i < vadData.length; i++) {
+          const v = (vadData[i] - 128) / 128;
+          sum += v * v;
+        }
+        const rms = Math.sqrt(sum / vadData.length) * 100;
+
+        if (rms > SILENCE_LEVEL) {
+          // صوت مكتشف — أعد ضبط مؤقت الصمت
+          state.lastSpeechTime = Date.now();
+          if (!speechDetected) speechDetected = true;
+          if (state.silenceTimer) { clearTimeout(state.silenceTimer); state.silenceTimer = null; }
+        } else if (speechDetected) {
+          // صمت بعد كلام — ابدأ العد التنازلي (1.25 ثانية)
+          if (!state.silenceTimer) {
+            const elapsed = Date.now() - state.lastSpeechTime;
+            if (elapsed < MIN_SPEECH_MS) {
+              // كلام قصير جداً — انتظر أكثر
+            } else {
+              state.silenceTimer = setTimeout(() => {
+                if (state.isRecording) {
+                  console.log('[VAD] Silence detected — auto-stopping after', SILENCE_MS, 'ms');
+                  stopRecording();
+                }
+              }, SILENCE_MS);
+            }
+          }
+        }
+
+        state.vadFrameId = requestAnimationFrame(vadLoop);
+      };
+
+      state.vadFrameId = requestAnimationFrame(vadLoop);
+    } catch (vadErr) {
+      console.warn('[VAD] Could not start VAD:', vadErr);
+    }
+    // ──────────────────────────────────────────────────────────────────────
 
   } catch (err) {
     console.error('[J.A.R.V.I.S] Mic error:', err);
@@ -730,6 +1026,12 @@ function stopRecording() {
   if (!state.isRecording) return;
   state.isRecording = false;
 
+  // Stop VAD loop & timers
+  if (state.vadFrameId)    { cancelAnimationFrame(state.vadFrameId);    state.vadFrameId    = null; }
+  if (state.silenceTimer)  { clearTimeout(state.silenceTimer);           state.silenceTimer  = null; }
+  state.vadAnalyser  = null;
+  state.vadDataArray = null;
+
   if (state.mediaRecorder && state.mediaRecorder.state !== 'inactive') {
     state.mediaRecorder.stop();
   }
@@ -740,18 +1042,22 @@ function stopRecording() {
   }
 
   setOrbState('thinking');
-  startWatchdog(); // will be cleared when transcription and response arrive
+  startWatchdog();
 }
 
 async function processAudioRecording() {
   if (state.audioChunks.length === 0) {
     setOrbState('idle');
+    // استئناف الاستماع إذا لم يكن هناك صوت
+    setTimeout(() => { if (window.WakeWordEngine) WakeWordEngine.resumeListening(); }, 500);
     return;
   }
 
   const audioBlob = new Blob(state.audioChunks, { type: state.mediaRecorder?.mimeType || 'audio/webm' });
-  if (audioBlob.size < 1200) {
+  if (audioBlob.size < 400) {
     setOrbState('idle');
+    // استئناف الاستماع إذا كان الصوت قصيراً جداً
+    setTimeout(() => { if (window.WakeWordEngine) WakeWordEngine.resumeListening(); }, 500);
     return;
   }
 
@@ -759,10 +1065,12 @@ async function processAudioRecording() {
   reader.onloadend = () => {
     const base64 = reader.result.split(',')[1];
     if (base64) {
+      state.isTypingInteraction = false; // Voice mode is source: TTS will speak!
       wsSend({ type: 'audio_input', audio: base64, voice: state.activeVoiceId });
       startWatchdog(); // prevent stuck state after sending voice
     } else {
       setOrbState('idle');
+      setTimeout(() => { if (window.WakeWordEngine) WakeWordEngine.resumeListening(); }, 500);
     }
   };
   reader.readAsDataURL(audioBlob);
@@ -776,6 +1084,8 @@ function handleSendText(forcedText) {
   const isForced = typeof forcedText === 'string';
   const text = (isForced ? forcedText : (DOM.textInput.value || '')).trim();
   if (!text && state.pendingAttachments.length === 0) return;
+
+  state.isTypingInteraction = true; // Typing mode is source: Silent text response!
 
   // Clear input without bouncing
   if (!isForced) DOM.textInput.value = '';
@@ -840,12 +1150,103 @@ function showUserDialogue(text) {
 function renderMarkdown(raw) {
   if (!raw) return '';
 
-  // 1. استخراج كتل الأكواد البرمجية لحمايتها من المعالجة
+  // 1. استخراج كتل الأكواد البرمجية لحمايتها من المعالجة + إضافة بطاقة تشغيل
   const codeBlocks = [];
   let text = String(raw).replace(/```([a-zA-Z0-9_-]*)\n?([\s\S]*?)```/g, (match, lang, code) => {
     const idx = codeBlocks.length;
-    codeBlocks.push(`<pre class="bubble-pre"><code class="language-${escapeHtml(lang)}">${escapeHtml(code.trim())}</code></pre>`);
+    const cleanLang = (lang || 'code').toLowerCase().trim();
+    const cleanCode = code.trim();
+    const isRunnable = ['html', 'javascript', 'js', 'css', 'python', 'py', 'powershell', 'ps1', 'svg', 'game', 'web'].includes(cleanLang);
+    const langLabel = cleanLang.toUpperCase() || 'CODE';
+    const codeId = `code_${Date.now()}_${idx}`;
+
+    const runBtn = isRunnable
+      ? `<button class="code-action-btn run-btn" onclick="runCodeBlock('${codeId}')" data-lang="${cleanLang}" data-codeid="${codeId}" id="runbtn_${codeId}">▶ تشغيل</button>`
+      : '';
+
+    const html = `<div class="code-card-wrapper" id="${codeId}">
+  <div class="code-card-header">
+    <span class="code-lang-label">⚡ ${langLabel}</span>
+    <div class="code-card-actions">
+      <button class="code-action-btn copy-btn" onclick="copyCodeBlock('${codeId}')" title="نسخ الكود">📋 نسخ</button>
+      ${runBtn}
+    </div>
+  </div>
+  <pre class="bubble-pre" id="pre_${codeId}"><code class="language-${escapeHtml(cleanLang)}" data-raw-code="">${escapeHtml(cleanCode)}</code></pre>
+</div>`;
+
+    // store raw code on element after render via dataset
+    codeBlocks.push({ html, rawCode: cleanCode, lang: cleanLang });
     return `%%CODE_BLOCK_${idx}%%`;
+  });
+
+// دالة تنزيل وحفظ الصورة بأمان لمنع أي تلف في الملفات
+window.downloadImageFile = async function(url, filename) {
+  try {
+    showToast('⏳ جاري تحميل الصورة وحفظها...');
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename || `samir_art_${Date.now()}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+    showToast('💾 تم حفظ وتنزيل الصورة بنجاح!');
+  } catch (err) {
+    console.warn('Direct blob download failed, fallback to direct open:', err);
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.download = filename || 'image.png';
+    a.click();
+  }
+};
+
+  // 1.5 حماية واستخراج الصور المضمنة ![نص](رابط) والروابط المباشرة لصور
+  const imageBlocks = [];
+
+  // تنظيف أي مسارات ويندوز محلية أو نسبية وتحويلها إلى مسار الويب المباشر
+  text = text.replace(/[A-Za-z]:\\[^\s)]*generated\\([^\s)]+\.(?:png|jpg|jpeg|webp))/gi, '/static/generated/$1');
+  text = text.replace(/[A-Za-z]:\/[^\s)]*generated\/([^\s)]+\.(?:png|jpg|jpeg|webp))/gi, '/static/generated/$1');
+  text = text.replace(/(?:\.\/|\.\.\/|\/)?(?:web_console\/)?generated\/([^\s)]+\.(?:png|jpg|jpeg|webp))/gi, '/static/generated/$1');
+
+  // تحويل أي رابط صورة مباشر إلى صيغة ماركداون تلقائياً
+  text = text.replace(/(^|[\s\n])(\/(?:static\/)?generated\/[^\s<>]+\.(?:png|jpg|jpeg|webp|svg)|https?:\/\/[^\s<>]+\.(?:png|jpg|jpeg|webp|svg)(?:\?[^\s<>]*)?)/gi, (match, prefix, url) => {
+    return `${prefix}![صورة رسمها سمير](${url})`;
+  });
+
+  text = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, src) => {
+    const idx = imageBlocks.length;
+    let cleanSrc = src.trim().replace(/\\/g, '/');
+    if (cleanSrc.includes('/generated/')) {
+      const fileName = cleanSrc.split('/generated/').pop().split('?')[0];
+      cleanSrc = `/static/generated/${fileName}`;
+    }
+    const cleanAlt = (alt || 'صورة سمير بالذكاء الاصطناعي').trim();
+    const rawFile = cleanSrc.split('/').pop()?.split('?')[0] || `samir_art_${Date.now()}.png`;
+    const downloadName = rawFile.endsWith('.png') ? rawFile : `${rawFile}.png`;
+
+    const html = `<div class="chat-image-wrap">
+  <div class="chat-img-card">
+    <div class="chat-img-header">
+      <span class="chat-img-badge">🎨 صورة سمير (PNG)</span>
+      <div class="chat-img-actions">
+        <button class="chat-img-dl-btn" onclick="downloadImageFile('${cleanSrc}', '${downloadName}')" title="حفظ الصورة بصيغة PNG على جهازك">💾 حفظ PNG</button>
+        <button class="chat-img-dl-btn" onclick="window.open('${cleanSrc}', '_blank')" title="عرض بدقة كاملة">⛶ تكبير</button>
+      </div>
+    </div>
+    <div class="chat-img-body">
+      <img src="${cleanSrc}" alt="${escapeHtml(cleanAlt)}" class="chat-rendered-img" onclick="window.open('${cleanSrc}', '_blank')" loading="eager" />
+    </div>
+    <div class="chat-img-caption">✨ ${escapeHtml(cleanAlt)}</div>
+  </div>
+</div>`;
+    imageBlocks.push(html);
+    return `\n\n%%IMAGE_BLOCK_${idx}%%\n\n`;
   });
 
   // 2. حماية الأكواد المضمنة inline code
@@ -863,13 +1264,6 @@ function renderMarkdown(raw) {
   text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   text = text.replace(/__(.+?)__/g, '<strong>$1</strong>');
   text = text.replace(/\*([^\*\n]+)\*/g, '<em>$1</em>');
-
-  // 4.5 الصور المضمنة ![نص](رابط)
-  text = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, src) => {
-    const cleanSrc = src.trim();
-    const cleanAlt = alt || 'صورة تم رسمها بالذكاء الاصطناعي';
-    return `<div class="chat-image-wrap"><img src="${cleanSrc}" alt="${cleanAlt}" class="chat-rendered-img" onclick="window.open('${cleanSrc}', '_blank')" title="انقر لعرض الصورة بدقة كاملة" loading="lazy" /><div class="chat-img-caption">🎨 ${cleanAlt} <a href="${cleanSrc}" target="_blank" download class="chat-img-dl-btn" title="تحميل الصورة">⬇️ حفظ</a></div></div>`;
-  });
 
   // 5. الروابط التشعبية [نص](رابط)
   text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
@@ -891,6 +1285,13 @@ function renderMarkdown(raw) {
 
     if (!trimmed) {
       closeLists();
+      continue;
+    }
+
+    // فحص كتل الصور المضمنة لعدم لفها بفقرة <p>
+    if (trimmed.startsWith('%%IMAGE_BLOCK_') && trimmed.endsWith('%%')) {
+      closeLists();
+      output.push(trimmed);
       continue;
     }
 
@@ -935,11 +1336,42 @@ function renderMarkdown(raw) {
   closeLists();
   let result = output.join('');
 
-  // 7. استعادة كتل الأكواد والـ inline code
-  result = result.replace(/%%CODE_BLOCK_(\d+)%%/g, (match, idx) => codeBlocks[parseInt(idx)] || '');
+  // 7. استعادة كتل الصور والأكواد والـ inline code
+  result = result.replace(/%%IMAGE_BLOCK_(\d+)%%/g, (match, idx) => imageBlocks[parseInt(idx)] || '');
+  result = result.replace(/%%CODE_BLOCK_(\d+)%%/g, (match, idx) => {
+    const block = codeBlocks[parseInt(idx)];
+    if (!block) return '';
+    if (typeof block === 'string') return block;
+    return block.html || '';
+  });
   result = result.replace(/%%INLINE_CODE_(\d+)%%/g, (match, idx) => inlineCodes[parseInt(idx)] || '');
 
+  // Store raw code for run buttons (called after DOM insertion)
+  if (typeof _pendingCodeBlocks !== 'undefined') {
+    _pendingCodeBlocks.push(...codeBlocks.filter(b => typeof b === 'object'));
+  }
+
   return result;
+}
+
+// Global store for code blocks awaiting DOM attachment
+const _pendingCodeBlocks = [];
+
+function _attachPendingCodeBlocks() {
+  while (_pendingCodeBlocks.length > 0) {
+    const block = _pendingCodeBlocks.shift();
+    if (!block || !block.html) continue;
+    // Find <code> elements inside cards and attach data-raw-code
+    const wrappers = document.querySelectorAll('.code-card-wrapper');
+    wrappers.forEach(wrapper => {
+      const codeEl = wrapper.querySelector('code');
+      if (codeEl && codeEl.getAttribute('data-raw-code') === '' && !codeEl._codeAttached) {
+        codeEl.setAttribute('data-raw-code', block.rawCode);
+        codeEl.setAttribute('data-lang', block.lang);
+        codeEl._codeAttached = true;
+      }
+    });
+  }
 }
 
 function showAssistantDialogue(data) {
@@ -968,6 +1400,8 @@ function showAssistantDialogue(data) {
 
   if (data.toolCalls && data.toolCalls.length > 0) {
     const toolsWrap = bubble.querySelector('.bubble-tools');
+    const contentWrap = bubble.querySelector('.bubble-content');
+
     data.toolCalls.forEach(t => {
       const name = t.name || t.function?.name || 'tool';
       const chip = document.createElement('div');
@@ -977,8 +1411,66 @@ function showAssistantDialogue(data) {
       else if (name.includes('image')) icon = '🎨';
       else if (name.includes('code')) icon = '💻';
       else if (name.includes('app')) icon = '🚀';
+      else if (name.includes('youtube')) icon = '🎬';
+      else if (name.includes('spotify')) icon = '🎵';
       chip.textContent = `${icon} نفّذ: ${name}`;
       toolsWrap.appendChild(chip);
+
+      // إذا كانت الأداة تشغل يوتيوب أو سبوتيفاي، نعرض الفيديو فوراً في الرسالة نفسها وفي المشغل العائم
+      const res = t.result || t.execution || {};
+      if (res && res.embed_url && contentWrap) {
+        const isSp = (res.service || '').includes('spotify');
+        const mediaCard = document.createElement('div');
+        mediaCard.className = `chat-media-embed-card ${isSp ? 'spotify' : 'youtube'}`;
+        mediaCard.innerHTML = `
+          <div class="chat-media-embed-header">
+            <span>${isSp ? '🎵 سبوتيفاي' : '🎬 فيديو يوتيوب'}: ${escapeHtml(res.title || 'مشغل الوسائط')}</span>
+            <a href="${escapeHtml(res.url || res.embed_url)}" target="_blank" style="color:var(--cyan);font-size:11px;text-decoration:none;">↗️ نافذة خارجية</a>
+          </div>
+          <div class="chat-media-iframe-wrap ${isSp ? 'spotify-wrap' : ''}">
+            <iframe src="${escapeHtml(res.embed_url)}" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>
+          </div>
+        `;
+        contentWrap.appendChild(mediaCard);
+        openInAppMediaPlayer(res);
+      }
+
+      // إذا كانت الأداة رسم وتوليد صور، نضمن عرض الصورة فورياً كبطاقة مع خيار حفظ PNG
+      const isImgTool = name.includes('image') || name.includes('imagine');
+      let imgUrl = res && (res.image_url || res.direct_url);
+      if (imgUrl) {
+        imgUrl = imgUrl.replace(/\\/g, '/');
+        if (imgUrl.includes('/generated/')) {
+          const fn = imgUrl.split('/generated/').pop().split('?')[0];
+          imgUrl = `/static/generated/${fn}`;
+        }
+      }
+      if (isImgTool && imgUrl && contentWrap) {
+        const alreadyRendered = contentWrap.querySelector(`img[src*="${imgUrl}"]`);
+        if (!alreadyRendered) {
+          const rawFile = (imgUrl || '').split('/').pop()?.split('?')[0] || `samir_art_${Date.now()}.png`;
+          const finalDownload = rawFile.endsWith('.png') ? rawFile : `${rawFile}.png`;
+          const promptText = res.prompt || t.arguments?.prompt || 'رسمة سمير';
+          const imgCard = document.createElement('div');
+          imgCard.className = 'chat-image-wrap';
+          imgCard.innerHTML = `
+            <div class="chat-img-card">
+              <div class="chat-img-header">
+                <span class="chat-img-badge">🎨 صورة سمير (${res.format || 'PNG'})</span>
+                <div class="chat-img-actions">
+                  <button class="chat-img-dl-btn" onclick="downloadImageFile('${imgUrl}', '${finalDownload}')" title="حفظ الصورة بصيغة PNG على جهازك">💾 حفظ PNG</button>
+                  <button class="chat-img-dl-btn" onclick="window.open('${imgUrl}', '_blank')" title="عرض بدقة كاملة">⛶ تكبير</button>
+                </div>
+              </div>
+              <div class="chat-img-body">
+                <img src="${imgUrl}" alt="${escapeHtml(promptText)}" class="chat-rendered-img" onclick="window.open('${imgUrl}', '_blank')" loading="eager" />
+              </div>
+              <div class="chat-img-caption">✨ ${escapeHtml(promptText)}</div>
+            </div>
+          `;
+          contentWrap.appendChild(imgCard);
+        }
+      }
     });
   }
 
@@ -997,6 +1489,8 @@ function showAssistantDialogue(data) {
 
   DOM.dialogueScrollArea.appendChild(bubble);
   scrollDialogueToBottom();
+  // Attach raw code to code-card run buttons for this bubble
+  setTimeout(_attachPendingCodeBlocks, 0);
 }
 
 function scrollDialogueToBottom(forceSmooth = false) {
@@ -1037,7 +1531,9 @@ function renderToolChips(tools) {
 async function loadConversationsList() {
   if (!DOM.drawerConvList) return;
   try {
-    const res = await fetch(`${CONFIG.httpBase}/api/v1/conversations?limit=50`);
+    const devParam = encodeURIComponent(state.deviceId || '');
+    const userParam = state.currentUser?.id ? `&user_id=${encodeURIComponent(state.currentUser.id)}` : '';
+    const res = await fetch(`${CONFIG.httpBase}/api/v1/conversations?limit=50&device_id=${devParam}${userParam}`);
     if (!res.ok) return;
     const convs = await res.json();
     state.conversations = convs || [];
@@ -1307,13 +1803,62 @@ async function saveSettings() {
       });
     }
 
-    // 2. Default Provider
+    // 2. Speech speed (1x - 5x)
+    const speedVal = DOM.settingTtsRate?.value;
+    if (speedVal) {
+      const speedNum = parseFloat(speedVal);
+      // Convert multiplier to Edge TTS rate offset: 1x=+0%, 2x=+50%, 3x=+100%, 4x=+150%, 5x=+200%
+      const pct = Math.round((speedNum - 1) * 50);
+      const rateStr = pct >= 0 ? `+${pct}%` : `${pct}%`;
+      try {
+        await fetch(`${CONFIG.httpBase}/api/v1/chat/voice/config`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rate: rateStr, speed_multiplier: speedNum }),
+        });
+        state.speechSpeed = speedNum;
+        console.log(`[Samir] Speech speed set to ${speedNum}x (${rateStr})`);
+      } catch (e) {
+        console.warn('[Samir] Could not save speech speed:', e);
+      }
+    }
+
+    // 3. Default Provider
     const prov = DOM.settingDefaultProvider?.value;
     if (prov && DOM.providerSelect) {
       DOM.providerSelect.value = prov;
+      try {
+        await fetch(`${CONFIG.httpBase}/api/v1/providers/set-default`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider: prov })
+        });
+      } catch (ex) {
+        console.warn('[Samir] Could not set default provider:', ex);
+      }
     }
 
-    showToast('تم حفظ جميع الإعدادات بنجاح ⚙️');
+    // 4. Save AI API Keys if provided
+    const qwenKey = document.getElementById('setting-qwen-key')?.value?.trim();
+    const geminiKey = document.getElementById('setting-gemini-key')?.value?.trim();
+    const groqKey = document.getElementById('setting-groq-key')?.value?.trim();
+    if (qwenKey || geminiKey || groqKey) {
+      try {
+        await fetch(`${CONFIG.httpBase}/api/v1/providers/keys`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            qwen_api_key: qwenKey || undefined,
+            gemini_api_key: geminiKey || undefined,
+            groq_api_key: groqKey || undefined,
+          })
+        });
+      } catch (ex) {
+        console.warn('[Samir] Could not save API keys:', ex);
+      }
+    }
+
+    showToast('تم حفظ جميع الإعدادات والمحركات بنجاح ⚙️');
     if (DOM.settingsModal) DOM.settingsModal.classList.add('hidden');
   } catch (e) {
     showToast('حدث خطأ أثناء حفظ الإعدادات');
@@ -1415,10 +1960,13 @@ function initHudDashboard() {
         if (DOM.providerSelect) {
           DOM.providerSelect.focus();
           const current = DOM.providerSelect.value;
-          const options = ['gemini', 'claude', 'groq', 'auto'];
+          const options = ['auto', 'duckai', 'qwen', 'gemini', 'groq', 'claude', 'openai'];
           const nextIdx = (options.indexOf(current) + 1) % options.length;
           DOM.providerSelect.value = options[nextIdx];
-          showToast(`⚡ تم التبديل إلى: ${DOM.providerSelect.options[DOM.providerSelect.selectedIndex].text}`);
+          const selectedText = DOM.providerSelect.options[DOM.providerSelect.selectedIndex]?.text || options[nextIdx];
+          const topEngineName = document.getElementById('top-engine-name');
+          if (topEngineName) topEngineName.textContent = selectedText;
+          showToast(`⚡ تم التبديل إلى: ${selectedText}`);
         }
       } else if (action === 'security-auth') {
         showToast('🛡️ فحص الأمان: جميع مفاتيح API والجلسات مشفرة محلياً بنجاح.');
@@ -1462,7 +2010,43 @@ function initHudDashboard() {
     }
   }, 2500);
 
-  // 4. Oscillating Signal Wave Canvas
+  // 4. Live Real-Time Clock & Date
+  const clockEl = document.getElementById('hud-live-clock');
+  const dateEl = document.getElementById('hud-live-date');
+  const hijriEl = document.getElementById('hud-live-hijri');
+
+  function updateLiveClock() {
+    const now = new Date();
+    // الوقت
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
+    if (clockEl) clockEl.textContent = `${hh}:${mm}:${ss}`;
+
+    // التاريخ الميلادي بالعربية
+    const dayNames = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+    const monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+    const dayName = dayNames[now.getDay()];
+    const day = now.getDate();
+    const month = monthNames[now.getMonth()];
+    const year = now.getFullYear();
+    if (dateEl) dateEl.textContent = `${dayName}، ${day} ${month} ${year}`;
+
+    // التاريخ الهجري (Approximation)
+    if (hijriEl) {
+      try {
+        const hijriStr = now.toLocaleDateString('ar-SA-u-ca-islamic', { year: 'numeric', month: 'long', day: 'numeric' });
+        hijriEl.textContent = 'هـ: ' + hijriStr;
+      } catch(e) {
+        hijriEl.textContent = '';
+      }
+    }
+  }
+
+  updateLiveClock();
+  setInterval(updateLiveClock, 1000);
+
+  // 5. Oscillating Signal Wave Canvas
   initSignalWaveCanvas();
 }
 
@@ -1535,6 +2119,13 @@ function initSignalWaveCanvas() {
    9. EVENT LISTENERS & SHORTCUTS
    ═════════════════════════════ */
 function setupEventListeners() {
+  // Custom Rules Topbar Button
+  if (DOM.btnCustomRules) {
+    DOM.btnCustomRules.addEventListener('click', () => {
+      openCustomRulesModal();
+    });
+  }
+
   // Settings Modal Toggle & Live Quota Check
   if (DOM.settingsBtn) {
     DOM.settingsBtn.addEventListener('click', () => {
@@ -1638,6 +2229,25 @@ function setupEventListeners() {
         e.preventDefault();
         handleSendText();
       }
+    });
+  }
+
+  // Provider Select listener
+  if (DOM.providerSelect) {
+    const savedProv = localStorage.getItem('samir_ai_provider');
+    if (savedProv && Array.from(DOM.providerSelect.options).some(o => o.value === savedProv)) {
+      DOM.providerSelect.value = savedProv;
+      const topEngineName = document.getElementById('top-engine-name');
+      if (topEngineName) topEngineName.textContent = DOM.providerSelect.options[DOM.providerSelect.selectedIndex]?.text;
+    }
+
+    DOM.providerSelect.addEventListener('change', () => {
+      const selectedVal = DOM.providerSelect.value;
+      const selectedText = DOM.providerSelect.options[DOM.providerSelect.selectedIndex]?.text || selectedVal;
+      localStorage.setItem('samir_ai_provider', selectedVal);
+      const topEngineName = document.getElementById('top-engine-name');
+      if (topEngineName) topEngineName.textContent = selectedText;
+      showToast(`⚡ تم التبديل إلى: ${selectedText}`);
     });
   }
 
@@ -1834,13 +2444,187 @@ function setupEventListeners() {
     });
   });
 
+  // ── User Auth & Memory Modal ───────────────────────────────────────────
+  if (DOM.btnGoogleLogin) {
+    DOM.btnGoogleLogin.addEventListener('click', openAuthModal);
+  }
+
+  if (DOM.userProfileChip) {
+    DOM.userProfileChip.addEventListener('click', openAuthModal);
+  }
+
+  if (DOM.authModalClose) {
+    DOM.authModalClose.addEventListener('click', closeAuthModal);
+  }
+
+  if (DOM.btnAuthDone) {
+    DOM.btnAuthDone.addEventListener('click', closeAuthModal);
+  }
+
+  // Auth Tabs (Login vs Register)
+  if (DOM.tabBtnLogin) {
+    DOM.tabBtnLogin.addEventListener('click', () => switchAuthTab('login'));
+  }
+  if (DOM.tabBtnRegister) {
+    DOM.tabBtnRegister.addEventListener('click', () => switchAuthTab('register'));
+  }
+
+  // Password Peek Toggles
+  if (DOM.btnPeekLogin && DOM.loginPassword) {
+    DOM.btnPeekLogin.addEventListener('click', () => {
+      const isPwd = DOM.loginPassword.type === 'password';
+      DOM.loginPassword.type = isPwd ? 'text' : 'password';
+      DOM.btnPeekLogin.textContent = isPwd ? '🙈' : '👁️';
+    });
+  }
+  if (DOM.btnPeekReg && DOM.regPassword) {
+    DOM.btnPeekReg.addEventListener('click', () => {
+      const isPwd = DOM.regPassword.type === 'password';
+      DOM.regPassword.type = isPwd ? 'text' : 'password';
+      DOM.btnPeekReg.textContent = isPwd ? '🙈' : '👁️';
+    });
+  }
+
+  // Submit Login
+  if (DOM.btnSubmitLogin) {
+    DOM.btnSubmitLogin.addEventListener('click', handleUserLogin);
+  }
+  if (DOM.loginPassword) {
+    DOM.loginPassword.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleUserLogin();
+    });
+  }
+  if (DOM.loginEmail) {
+    DOM.loginEmail.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleUserLogin();
+    });
+  }
+
+  // Submit Register
+  if (DOM.btnSubmitRegister) {
+    DOM.btnSubmitRegister.addEventListener('click', handleUserRegister);
+  }
+  if (DOM.regPassword) {
+    DOM.regPassword.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleUserRegister();
+    });
+  }
+
+  if (DOM.btnWipeMyMemories) {
+    DOM.btnWipeMyMemories.addEventListener('click', wipeMyMemories);
+  }
+
+  if (DOM.btnLogoutGoogle) {
+    DOM.btnLogoutGoogle.addEventListener('click', logoutUser);
+  }
+
+  // ── Voice / Silent Typing Mode Toggle ────────────────────────────────────
+  if (DOM.btnToggleVoiceMode) {
+    DOM.btnToggleVoiceMode.addEventListener('click', toggleVoiceMode);
+  }
+
+  // ── Mobile Commands Dropdown Listeners ─────────────────────────────────
+  if (DOM.btnMobileMenu) {
+    DOM.btnMobileMenu.addEventListener('click', toggleMobileCommandsMenu);
+  }
+  if (DOM.mobileCmdCloseBtn) {
+    DOM.mobileCmdCloseBtn.addEventListener('click', closeMobileCommandsMenu);
+  }
+
+  document.getElementById('mcmd-login')?.addEventListener('click', () => {
+    closeMobileCommandsMenu();
+    openAuthModal();
+  });
+  document.getElementById('mcmd-voice-mode')?.addEventListener('click', () => {
+    closeMobileCommandsMenu();
+    toggleVoiceMode();
+  });
+  document.getElementById('mcmd-wake-word')?.addEventListener('click', () => {
+    closeMobileCommandsMenu();
+    WakeWordEngine.toggle();
+  });
+  document.getElementById('mcmd-history')?.addEventListener('click', () => {
+    closeMobileCommandsMenu();
+    if (DOM.drawerOverlay) DOM.drawerOverlay.classList.remove('hidden');
+    loadConversationsList();
+  });
+  document.getElementById('mcmd-settings')?.addEventListener('click', () => {
+    closeMobileCommandsMenu();
+    if (DOM.settingsModal) DOM.settingsModal.classList.remove('hidden');
+    checkVoiceQuota();
+  });
+  document.getElementById('mcmd-share')?.addEventListener('click', () => {
+    closeMobileCommandsMenu();
+    openMobileConnectModal();
+  });
+  document.getElementById('mcmd-youtube')?.addEventListener('click', () => {
+    closeMobileCommandsMenu();
+    if (DOM.textInput) {
+      DOM.textInput.value = 'شغل يوتيوب فيديو ممتع';
+      handleSendText('شغل يوتيوب فيديو ممتع');
+      DOM.textInput.value = '';
+    }
+  });
+  document.getElementById('mcmd-spotify')?.addEventListener('click', () => {
+    closeMobileCommandsMenu();
+    if (DOM.textInput) {
+      DOM.textInput.value = 'شغل موسيقى هادئة على سبوتيفاي';
+      handleSendText('شغل موسيقى هادئة على سبوتيفاي');
+      DOM.textInput.value = '';
+    }
+  });
+  document.getElementById('mcmd-screenshot')?.addEventListener('click', () => {
+    closeMobileCommandsMenu();
+    if (DOM.textInput) {
+      DOM.textInput.value = 'التقط لقطة شاشة وحللها لي';
+      handleSendText('التقط لقطة شاشة وحللها لي');
+      DOM.textInput.value = '';
+    }
+  });
+  document.getElementById('mcmd-sound')?.addEventListener('click', () => {
+    closeMobileCommandsMenu();
+    toggleSound();
+  });
+
+  document.getElementById('mcmd-custom-rules')?.addEventListener('click', () => {
+    closeMobileCommandsMenu();
+    openCustomRulesModal();
+  });
+
+  // ── Custom Rules Modal Handlers ──────────────────────────────────────────
+  const customRulesModal = document.getElementById('custom-rules-modal');
+  const customRulesCloseBtn = document.getElementById('custom-rules-close-btn');
+  const customRulesDoneBtn = document.getElementById('custom-rules-done-btn');
+  const btnSaveCustomRule = document.getElementById('btn-save-custom-rule');
+
+  if (customRulesCloseBtn) {
+    customRulesCloseBtn.addEventListener('click', closeCustomRulesModal);
+  }
+  if (customRulesDoneBtn) {
+    customRulesDoneBtn.addEventListener('click', closeCustomRulesModal);
+  }
+  if (customRulesModal) {
+    customRulesModal.addEventListener('click', (e) => {
+      if (e.target === customRulesModal) closeCustomRulesModal();
+    });
+  }
+  if (btnSaveCustomRule) {
+    btnSaveCustomRule.addEventListener('click', saveCustomRule);
+  }
+
   // Global Keyboard Shortcuts
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      if (DOM.drawerOverlay && !DOM.drawerOverlay.classList.contains('hidden')) {
+      closeMobileCommandsMenu();
+      const customRulesModal = document.getElementById('custom-rules-modal');
+      if (customRulesModal && customRulesModal.style.display !== 'none' && customRulesModal.style.display !== '') {
+        closeCustomRulesModal();
+      } else if (DOM.drawerOverlay && !DOM.drawerOverlay.classList.contains('hidden')) {
         DOM.drawerOverlay.classList.add('hidden');
       } else if (DOM.settingsModal && !DOM.settingsModal.classList.contains('hidden')) {
         DOM.settingsModal.classList.add('hidden');
+      } else if (DOM.authModalOverlay && !DOM.authModalOverlay.classList.contains('hidden')) {
+        DOM.authModalOverlay.classList.add('hidden');
       } else if (state.isPlayingAudio) {
         stopAudioPlayback();
         wsSend({ type: 'abort' });
@@ -1848,6 +2632,17 @@ function setupEventListeners() {
       }
     }
   });
+}
+
+function toggleMobileCommandsMenu() {
+  if (!DOM.mobileCommandsDropdown) return;
+  DOM.mobileCommandsDropdown.classList.toggle('hidden');
+  if (DOM.btnMobileMenu) DOM.btnMobileMenu.classList.toggle('active', !DOM.mobileCommandsDropdown.classList.contains('hidden'));
+}
+
+function closeMobileCommandsMenu() {
+  if (DOM.mobileCommandsDropdown) DOM.mobileCommandsDropdown.classList.add('hidden');
+  if (DOM.btnMobileMenu) DOM.btnMobileMenu.classList.remove('active');
 }
 
 /* ── Attachment Upload via HTTP (files → backend → chips) ────────────────── */
@@ -1981,13 +2776,16 @@ const WakeWordEngine = {
   init() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      console.warn('[WakeWord] SpeechRecognition not supported in this browser.');
+      console.warn('[WakeWord] SpeechRecognition not supported in this browser. Use Chrome or Edge for wake word functionality.');
       if (DOM.btnWakeWord) {
-        DOM.btnWakeWord.title = 'التعرف الصوتي على النداء غير مدعوم في هذا المتصفح';
+        DOM.btnWakeWord.title = 'خاصية النداء الصوتي (يا سمير) تحتاج Chrome أو Edge';
         DOM.btnWakeWord.style.opacity = '0.5';
+        DOM.btnWakeWord.onclick = () => showToast('⚠️ خاصية النداء الصوتي تحتاج متصفح Chrome أو Edge');
       }
       return;
     }
+    console.log('[WakeWord] SpeechRecognition API available ✓');
+
 
     const saved = localStorage.getItem('samir_wake_word_active');
     this.enabled = saved === null ? true : saved === 'true';
@@ -2009,6 +2807,11 @@ const WakeWordEngine = {
     if (!SpeechRecognition) return;
 
     try {
+      if (this.recognition) {
+        try { this.recognition.abort(); } catch (e) {}
+        this.recognition = null;
+      }
+
       this.recognition = new SpeechRecognition();
       this.recognition.continuous = true;
       this.recognition.interimResults = true;
@@ -2033,14 +2836,40 @@ const WakeWordEngine = {
 
         if (matched) {
           console.log('[WakeWord] Detected Samir wake keyword:', transcript);
+          // فحص إذا كان المستخدم قد نطق الأمر كاملاً مع اسم سمير (مثل: "سمير افتح يوتيوب" أو "يا سمير كم الساعة")
+          let cleanCmd = transcript;
+          keywords.forEach(kw => {
+            cleanCmd = cleanCmd.replace(new RegExp(kw, 'gi'), '');
+          });
+          cleanCmd = cleanCmd.replace(/[،,.]/g, '').trim();
+
+          if (cleanCmd.length >= 3) {
+            console.log('[WakeWord] Full command recognized with wake word:', cleanCmd);
+            this.pauseListening();
+            this.playWakeChime();
+            showToast(`🎙️ جاري تنفيذ أمرك: "${transcript}"`);
+            state.isTypingInteraction = false;
+            handleSendText(transcript);
+            return;
+          }
+
           this.triggerActivation();
         }
       };
 
       this.recognition.onerror = (e) => {
-        if (e.error !== 'no-speech' && e.error !== 'aborted') {
+        if (e.error === 'network') {
+          // يحدث هذا الخطأ عند استخدام HTTP بدلاً من HTTPS
+          // SpeechRecognition يحتاج HTTPS في بعض المتصفحات
+          console.warn('[WakeWord] Network error — SpeechRecognition يحتاج HTTPS أو localhost. جاري المحاولة مرة أخرى...');
+          this.isListeningWakeWord = false;
+          // أعد المحاولة بعد تأخير أطول لتجنب التكرار المتسارع
+          clearTimeout(this.restartTimeout);
+          this.restartTimeout = setTimeout(() => this.resumeListening(), 5000);
+        } else if (e.error !== 'no-speech' && e.error !== 'aborted') {
           console.debug('[WakeWord] Recognition note:', e.error);
         }
+        this.isListeningWakeWord = false;
       };
 
       this.recognition.onend = () => {
@@ -2049,7 +2878,7 @@ const WakeWordEngine = {
           clearTimeout(this.restartTimeout);
           this.restartTimeout = setTimeout(() => {
             this.resumeListening();
-          }, 600);
+          }, 400);
         }
         this.updateUI();
       };
@@ -2093,12 +2922,14 @@ const WakeWordEngine = {
 
     await startRecording();
 
+    // نعتمد على كاشف الصمت الذكي (1.25 ثانية) للإرسال التلقائي
+    // ونضع مؤقت أمان أقصى 30 ثانية فقط في حال لم يتكلم المستخدم نهائياً
     if (this.activeSpeechTimer) clearTimeout(this.activeSpeechTimer);
     this.activeSpeechTimer = setTimeout(() => {
       if (state.isRecording) {
         stopRecording();
       }
-    }, 6000);
+    }, 30000);
   },
 
   pauseListening() {
@@ -2110,11 +2941,33 @@ const WakeWordEngine = {
   },
 
   resumeListening() {
-    if (!this.enabled || !this.recognition || state.isRecording || state.isPlayingAudio) return;
+    if (!this.enabled || state.isRecording || state.isPlayingAudio) return;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+    if (this.isListeningWakeWord) return;
+
+    // Always create fresh recognition instance for reliability
     try {
-      this.recognition.start();
+      this.createRecognition();
+      if (this.recognition) {
+        this.recognition.start();
+        this.isListeningWakeWord = true;
+      }
     } catch (e) {
-      // recognition may already be started
+      // If InvalidStateError, try once more after small delay
+      this.isListeningWakeWord = false;
+      clearTimeout(this.restartTimeout);
+      this.restartTimeout = setTimeout(() => {
+        try {
+          this.createRecognition();
+          if (this.recognition) {
+            this.recognition.start();
+            this.isListeningWakeWord = true;
+          }
+        } catch (err) {
+          console.debug('[WakeWord] Resume retry notice:', err);
+        }
+      }, 800);
     }
   },
 
@@ -2132,15 +2985,16 @@ const WakeWordEngine = {
   },
 
   updateUI() {
-    if (!DOM.btnWakeWord) return;
-    if (this.enabled) {
-      DOM.btnWakeWord.classList.add('active');
-      if (DOM.wakeDot) DOM.wakeDot.style.background = '#00ff88';
-      DOM.btnWakeWord.title = 'الأمر الصوتي مفعّل (قل "يا سمير" في أي وقت)';
-    } else {
-      DOM.btnWakeWord.classList.remove('active');
-      if (DOM.wakeDot) DOM.wakeDot.style.background = '#666';
-      DOM.btnWakeWord.title = 'اضغط لتفعيل الأمر الصوتي (نادي "سمير")';
+    if (DOM.btnWakeWord) {
+      if (this.enabled) {
+        DOM.btnWakeWord.classList.add('active');
+        if (DOM.wakeDot) DOM.wakeDot.style.background = '#00ff88';
+        DOM.btnWakeWord.title = 'الأمر الصوتي مفعّل (قل "يا سمير" في أي وقت)';
+      } else {
+        DOM.btnWakeWord.classList.remove('active');
+        if (DOM.wakeDot) DOM.wakeDot.style.background = '#666';
+        DOM.btnWakeWord.title = 'اضغط لتفعيل الأمر الصوتي (نادي "سمير")';
+      }
     }
   }
 };
@@ -2298,6 +3152,10 @@ function setupVisionStream(stream, mode) {
 
   if (DOM.visionVideo) {
     DOM.visionVideo.srcObject = stream;
+    // ✅ FIX: wait for video to actually load frame data before allowing capture
+    DOM.visionVideo.onloadeddata = () => {
+      console.log('[Vision] Video ready, dimensions:', DOM.visionVideo.videoWidth, 'x', DOM.visionVideo.videoHeight);
+    };
     DOM.visionVideo.play().catch((e) => console.log('Video play muted:', e));
   }
 
@@ -2363,7 +3221,10 @@ function captureVisionFrame() {
   if (!DOM.visionVideo || !DOM.visionCanvas || !state.activeVisionStream) return null;
   const video = DOM.visionVideo;
   const canvas = DOM.visionCanvas;
+
+  // ✅ FIX: check video is actually playing and has real dimensions
   if (!video.videoWidth || !video.videoHeight) return null;
+  if (video.readyState < 2) return null; // HAVE_CURRENT_DATA or better
 
   // Good resolution while keeping payload lean
   const maxW = 1024;
@@ -2372,19 +3233,43 @@ function captureVisionFrame() {
   canvas.height = Math.round(video.videoHeight * scale);
 
   const ctx = canvas.getContext('2d');
+  // ✅ FIX: fill black background first so canvas is never transparent/black on empty draw
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
   const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
   const base64 = dataUrl.split(',')[1];
+
+  // Quick sanity check — pure black frames are usually empty
+  if (!base64 || base64.length < 1000) return null;
+
   return base64;
 }
 
 function captureAndAnalyzeVision(customPrompt) {
   const base64 = captureVisionFrame();
   if (!base64) {
+    // Video may not be ready yet — retry once after 600ms
+    if (state.activeVisionStream && DOM.visionVideo) {
+      showToast('⏳ جاري انتظار جاهزية الفيديو...');
+      setTimeout(() => {
+        const b64retry = captureVisionFrame();
+        if (!b64retry) {
+          showToast('⚠️ تعذر التقاط إطار واضح من الشاشة — جرب مرة أخرى');
+          return;
+        }
+        _sendVisionCapture(b64retry, customPrompt);
+      }, 600);
+      return;
+    }
     showToast('⚠️ لا يوجد إطار فيديو نشط حالياً لالتقاطه');
     return;
   }
+  _sendVisionCapture(base64, customPrompt);
+}
 
+function _sendVisionCapture(base64, customPrompt) {
   const defaultPrompt = state.visionMode === 'screen'
     ? 'انظر لما هو معروض في شاشتي الآن وراقب ما أفعله واشرحه لي بدقة'
     : 'انظر عبر الكاميرا المباشرة الآن واشرح لي ما تراه وما الذي يحدث';
@@ -2392,9 +3277,15 @@ function captureAndAnalyzeVision(customPrompt) {
   const promptText = customPrompt || (DOM.textInput?.value?.trim() || defaultPrompt);
   if (DOM.textInput) DOM.textInput.value = '';
 
+  // ✅ FIX: include base64 + is_image so orchestrator sends it to Gemini
   state.pendingAttachments.push({
     name: 'live_stream_capture.jpg',
-    content: base64,
+    original_filename: 'live_stream_capture.jpg',
+    base64: base64,          // ← key field orchestrator reads
+    content: base64,         // ← fallback
+    data: base64,            // ← fallback
+    is_image: true,          // ← forces vision routing
+    category: 'image',
     mime_type: 'image/jpeg',
   });
 
@@ -2440,6 +3331,8 @@ function handleClientAction(action, data) {
       text: `تم تجهيز نتائج البحث عن: **${query}**.\n\n🔗 [اضغط هنا لفتح نتائج البحث مباشرة في متصفحك أو هاتفك](${searchUrl})`,
       model: 'البحث الذكي',
     });
+  } else if (action === 'open_in_app_media' || action === 'play_media') {
+    openInAppMediaPlayer(data);
   }
 }
 
@@ -2549,5 +3442,742 @@ function snoozeAlarm() {
   if (DOM.alarmOverlay) DOM.alarmOverlay.classList.add('hidden');
   scheduleAlarm(300, (DOM.alarmMessage?.textContent || 'منبه') + ' (تأجيل 5 دقائق)');
   showToast('⏳ تم تأجيل المنبه 5 دقائق');
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   13. INTERACTION MODE CONTROLLER (وضع الكتابة الصامتة / وضع الصوت)
+   ═════════════════════════════════════════════════════ */
+function initVoiceModeToggle() {
+  const saved = localStorage.getItem('samir_voice_mode_active');
+  // افتراضياً: false = كتابة صامتة بدون قراءة صوتية (طلب المستخدم الصريح)
+  state.voiceModeActive = saved === 'true';
+  updateVoiceModeUI();
+}
+
+function updateVoiceModeUI() {
+  if (!DOM.btnToggleVoiceMode) return;
+  if (state.voiceModeActive) {
+    DOM.btnToggleVoiceMode.classList.add('voice-active');
+    DOM.btnToggleVoiceMode.classList.remove('typing-active');
+    if (DOM.voiceModeIcon) DOM.voiceModeIcon.textContent = '🎙️';
+    if (DOM.voiceModeLabel) DOM.voiceModeLabel.textContent = 'وضع الصوت';
+    DOM.btnToggleVoiceMode.title = 'وضع قراءة الردود صوتياً نشط. اضغط للتحويل إلى الوضع الصامت.';
+  } else {
+    DOM.btnToggleVoiceMode.classList.remove('voice-active');
+    DOM.btnToggleVoiceMode.classList.add('typing-active');
+    if (DOM.voiceModeIcon) DOM.voiceModeIcon.textContent = '✍️';
+    if (DOM.voiceModeLabel) DOM.voiceModeLabel.textContent = 'كتابة صامتة';
+    DOM.btnToggleVoiceMode.title = 'وضع الكتابة الصامتة نشط (لا يقرأ الردود بالصوت). اضغط لتفعيل الصوت.';
+  }
+}
+
+function toggleVoiceMode() {
+  state.voiceModeActive = !state.voiceModeActive;
+  localStorage.setItem('samir_voice_mode_active', state.voiceModeActive ? 'true' : 'false');
+  updateVoiceModeUI();
+  wsSend({ type: 'set_voice_mode', enabled: state.voiceModeActive });
+  if (state.voiceModeActive) {
+    showToast('🎙️ تم تفعيل وضع الصوت — سيقرأ سمير الردود بالصوت');
+  } else {
+    showToast('✍️ تم تفعيل وضع الكتابة الصامتة — بدون قراءة صوتية');
+    stopAudioPlayback();
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   14. GOOGLE AUTH & USER ISOLATED MEMORY ENGINE
+   ═════════════════════════════════════════════════════ */
+function parseJwt(token) {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    return null;
+  }
+}
+
+function initGoogleAuth() {
+  // 1. استعادة الجلسة المحفوظة مسبقاً إن وُجدت
+  const token = localStorage.getItem('samir_session_token');
+  const cachedUserStr = localStorage.getItem('samir_user_data');
+  if (token && cachedUserStr) {
+    try {
+      const user = JSON.parse(cachedUserStr);
+      state.currentUser = user;
+      updateAuthUI(user);
+      fetchUserMemories(user.user_id || user.id, token);
+      // التأكد من صحة التوكن من السيرفر بالخلفية
+      verifySessionToken(token);
+    } catch (e) {
+      console.warn('Failed to parse cached user:', e);
+      updateAuthUI(null);
+    }
+  } else {
+    updateAuthUI(null);
+  }
+}
+
+async function verifySessionToken(token) {
+  try {
+    const res = await fetch(`${CONFIG.httpBase}/api/v1/auth/me?token=${encodeURIComponent(token)}`);
+    if (!res.ok) {
+      // التوكن منتهي أو غير صالح
+      console.warn('[Samir Auth] Session token expired or invalid');
+      localStorage.removeItem('samir_session_token');
+      localStorage.removeItem('samir_user_data');
+      state.currentUser = null;
+      updateAuthUI(null);
+    }
+  } catch (err) {
+    // خطأ شبكة مؤقت، نبقي المستخدم مسجلاً
+  }
+}
+
+function switchAuthTab(tab) {
+  if (tab === 'login') {
+    DOM.tabBtnLogin?.classList.add('active');
+    DOM.tabBtnRegister?.classList.remove('active');
+    DOM.paneAuthLogin?.classList.remove('hidden');
+    DOM.paneAuthRegister?.classList.add('hidden');
+    DOM.loginEmail?.focus();
+  } else {
+    DOM.tabBtnRegister?.classList.add('active');
+    DOM.tabBtnLogin?.classList.remove('active');
+    DOM.paneAuthRegister?.classList.remove('hidden');
+    DOM.paneAuthLogin?.classList.add('hidden');
+    DOM.regName?.focus();
+  }
+}
+
+async function handleUserLogin() {
+  const email = DOM.loginEmail?.value?.trim();
+  const password = DOM.loginPassword?.value || '';
+
+  if (!email) {
+    showToast('⚠️ يرجى إدخال البريد الإلكتروني');
+    DOM.loginEmail?.focus();
+    return;
+  }
+
+  showToast('⚡ جاري تسجيل الدخول...');
+  try {
+    const res = await fetch(`${CONFIG.httpBase}/api/v1/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || 'تعذر تسجيل الدخول');
+    }
+
+    onAuthSuccess(data, `أهلاً بك يا ${data.name}! تم تسجيل دخولك بنجاح 🧠`);
+  } catch (err) {
+    console.error('Login error:', err);
+    showToast('❌ ' + err.message);
+  }
+}
+
+async function handleUserRegister() {
+  const name = DOM.regName?.value?.trim();
+  const email = DOM.regEmail?.value?.trim();
+  const password = DOM.regPassword?.value || '';
+
+  if (!name) {
+    showToast('⚠️ يرجى إدخال اسمك الكريم');
+    DOM.regName?.focus();
+    return;
+  }
+  if (!email || !email.includes('@')) {
+    showToast('⚠️ يرجى إدخال بريد إلكتروني صحيح');
+    DOM.regEmail?.focus();
+    return;
+  }
+
+  showToast('⚡ جاري إنشاء الحساب...');
+  try {
+    const res = await fetch(`${CONFIG.httpBase}/api/v1/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || 'تعذر إنشاء الحساب');
+    }
+
+    onAuthSuccess(data, `مرحباً بك يا ${data.name}! تم إنشاء حسابك وتفعيل الذاكرة فوراً ✨`);
+  } catch (err) {
+    console.error('Register error:', err);
+    showToast('❌ ' + err.message);
+  }
+}
+
+function onAuthSuccess(data, welcomeMsg) {
+  state.currentUser = data;
+  localStorage.setItem('samir_session_token', data.session_token);
+  localStorage.setItem('samir_user_data', JSON.stringify(data));
+
+  // إرسال التوكن لخادم الـ WebSocket لربط جلسة الذاكرة فورياً
+  wsSend({ type: 'set_auth', token: data.session_token });
+
+  updateAuthUI(data);
+  fetchUserMemories(data.user_id, data.session_token);
+
+  showToast(welcomeMsg);
+  closeAuthModal();
+}
+
+function updateAuthUI(user) {
+  if (user) {
+    if (DOM.btnGoogleLogin) DOM.btnGoogleLogin.classList.add('hidden');
+    if (DOM.userProfileChip) DOM.userProfileChip.classList.remove('hidden');
+    if (DOM.userAvatar) DOM.userAvatar.src = user.picture || '/static/samir-logo.png';
+    if (DOM.userName) DOM.userName.textContent = user.name || 'المستخدم';
+
+    if (DOM.authViewLoggedOut) DOM.authViewLoggedOut.classList.add('hidden');
+    if (DOM.authViewLoggedIn) DOM.authViewLoggedIn.classList.remove('hidden');
+    if (DOM.authUserAvatar) DOM.authUserAvatar.src = user.picture || '/static/samir-logo.png';
+    if (DOM.authUserName) DOM.authUserName.textContent = user.name || 'المستخدم';
+    if (DOM.authUserEmail) DOM.authUserEmail.textContent = user.email || '';
+  } else {
+    if (DOM.btnGoogleLogin) DOM.btnGoogleLogin.classList.remove('hidden');
+    if (DOM.userProfileChip) DOM.userProfileChip.classList.add('hidden');
+
+    if (DOM.authViewLoggedOut) DOM.authViewLoggedOut.classList.remove('hidden');
+    if (DOM.authViewLoggedIn) DOM.authViewLoggedIn.classList.add('hidden');
+    if (DOM.userMemoryBadge) DOM.userMemoryBadge.textContent = '0';
+  }
+}
+
+function openAuthModal() {
+  if (DOM.authModalOverlay) {
+    DOM.authModalOverlay.classList.remove('hidden');
+    if (state.currentUser) {
+      fetchUserMemories(state.currentUser.user_id || state.currentUser.id, localStorage.getItem('samir_session_token'));
+    }
+  }
+}
+
+function closeAuthModal() {
+  if (DOM.authModalOverlay) {
+    DOM.authModalOverlay.classList.add('hidden');
+  }
+}
+
+async function fetchUserMemories(userId, token) {
+  if (!userId || !token) return;
+  try {
+    const res = await fetch(`${CONFIG.httpBase}/api/v1/auth/memories/${userId}?token=${encodeURIComponent(token)}`);
+    if (res.ok) {
+      const data = await res.json();
+      state.userMemories = data.memories || [];
+      renderUserMemoriesList(state.userMemories);
+    }
+  } catch (err) {
+    console.warn('Failed to fetch user memories:', err);
+  }
+}
+
+function renderUserMemoriesList(memories) {
+  const count = memories.length;
+  if (DOM.authMemoriesCount) DOM.authMemoriesCount.textContent = count;
+  if (DOM.userMemoryBadge) DOM.userMemoryBadge.textContent = count;
+
+  if (!DOM.authMemoriesList) return;
+  DOM.authMemoriesList.innerHTML = '';
+
+  if (count === 0) {
+    DOM.authMemoriesList.innerHTML = `
+      <div class="empty-memories-hint">
+        لا توجد ذكريات مسجلة بعد. عندما تتحدث مع سمير وتخبره بأي معلومة عنك أو عن مشاريعك، سيحفظها هنا في حسابك فقط!
+      </div>
+    `;
+    return;
+  }
+
+  memories.forEach((m) => {
+    const card = document.createElement('div');
+    card.className = 'memory-row-card';
+    card.innerHTML = `
+      <div class="memory-row-content">
+        <span class="memory-row-key">${escapeHtml(m.key)}</span>
+        <span class="memory-row-val">${escapeHtml(m.value)}</span>
+      </div>
+    `;
+    DOM.authMemoriesList.appendChild(card);
+  });
+}
+
+async function wipeMyMemories() {
+  if (!state.currentUser) return;
+  const confirmed = confirm('هل أنت متأكد من رغبتك في مسح كافة ذكرياتك المسجلة؟ سيبدأ سمير بصفحة بيضاء تماماً معك.');
+  if (!confirmed) return;
+
+  const userId = state.currentUser.user_id || state.currentUser.id;
+  const token = localStorage.getItem('samir_session_token') || state.currentUser.session_token;
+
+  showToast('🧹 جاري مسح الذكريات...');
+  try {
+    const res = await fetch(`${CONFIG.httpBase}/api/v1/auth/memory/${userId}?token=${encodeURIComponent(token)}`, {
+      method: 'DELETE',
+    });
+    if (res.ok) {
+      state.userMemories = [];
+      renderUserMemoriesList([]);
+      showToast('✅ تم مسح جميع ذكرياتك بنجاح والبدء بصفحة بيضاء');
+    } else {
+      showToast('❌ تعذر مسح الذكريات');
+    }
+  } catch (err) {
+    console.error('Wipe memories err:', err);
+    showToast('❌ خطأ في الاتصال بالخادم');
+  }
+}
+
+function logoutUser() {
+  localStorage.removeItem('samir_session_token');
+  localStorage.removeItem('samir_user_data');
+  state.currentUser = null;
+  state.userMemories = [];
+  updateAuthUI(null);
+  closeAuthModal();
+  showToast('تم تسجيل الخروج بنجاح 👋');
+}
+
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   15. CODE SANDBOX ENGINE — تشغيل الكود والألعاب كـ Qwen (مباشرة في المتصفح)
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+// State for current sandbox session
+const sandboxState = {
+  currentCode: '',
+  currentLang: 'html',
+  isOpen: false,
+};
+
+function initSandboxEngine() {
+  if (DOM.sandboxCloseBtn) {
+    DOM.sandboxCloseBtn.addEventListener('click', closeSandbox);
+  }
+  if (DOM.sandboxReloadBtn) {
+    DOM.sandboxReloadBtn.addEventListener('click', () => runInSandbox(sandboxState.currentCode, sandboxState.currentLang));
+  }
+  if (DOM.sandboxRunAgainBtn) {
+    DOM.sandboxRunAgainBtn.addEventListener('click', () => runInSandbox(sandboxState.currentCode, sandboxState.currentLang));
+  }
+  if (DOM.sandboxFullscreenBtn) {
+    DOM.sandboxFullscreenBtn.addEventListener('click', toggleSandboxFullscreen);
+  }
+  if (DOM.sandboxModalOverlay) {
+    DOM.sandboxModalOverlay.addEventListener('click', (e) => {
+      if (e.target === DOM.sandboxModalOverlay) closeSandbox();
+    });
+  }
+}
+
+function openSandbox() {
+  if (!DOM.sandboxModalOverlay) return;
+  DOM.sandboxModalOverlay.classList.remove('hidden');
+  sandboxState.isOpen = true;
+}
+
+function closeSandbox() {
+  if (!DOM.sandboxModalOverlay) return;
+  DOM.sandboxModalOverlay.classList.add('hidden');
+  sandboxState.isOpen = false;
+  // Clear iframe to stop any running game/audio
+  if (DOM.sandboxIframe) {
+    DOM.sandboxIframe.srcdoc = '';
+    DOM.sandboxIframe.src = 'about:blank';
+  }
+}
+
+function toggleSandboxFullscreen() {
+  if (!DOM.sandboxModalCard) return;
+  DOM.sandboxModalCard.classList.toggle('fullscreen');
+  if (DOM.sandboxFullscreenBtn) {
+    DOM.sandboxFullscreenBtn.textContent = DOM.sandboxModalCard.classList.contains('fullscreen') ? '⊡' : '⛶';
+  }
+}
+
+/**
+ * Main entry: run a code block. Called from inline onclick handlers.
+ * @param {string} codeId - ID of the .code-card-wrapper element
+ */
+function runCodeBlock(codeId) {
+  const wrapper = document.getElementById(codeId);
+  if (!wrapper) { showToast('⚠️ تعذر إيجاد الكود'); return; }
+
+  const codeEl = wrapper.querySelector('code');
+  if (!codeEl) { showToast('⚠️ تعذر قراءة الكود'); return; }
+
+  // Get raw code - first from data-raw-code, then from textContent
+  const rawCode = codeEl.getAttribute('data-raw-code') || codeEl.textContent || '';
+  const lang = codeEl.getAttribute('data-lang') || codeEl.className.replace('language-', '') || 'html';
+
+  if (!rawCode.trim()) { showToast('⚠️ الكود فارغ'); return; }
+
+  runInSandbox(rawCode, lang);
+}
+
+/**
+ * Execute code in sandbox based on language
+ */
+async function runInSandbox(code, lang) {
+  const cleanLang = (lang || 'html').toLowerCase().trim();
+  sandboxState.currentCode = code;
+  sandboxState.currentLang = cleanLang;
+
+  openSandbox();
+
+  if (DOM.sandboxLangBadge) DOM.sandboxLangBadge.textContent = cleanLang.toUpperCase();
+  if (DOM.sandboxStatus) DOM.sandboxStatus.textContent = '⏳ جاري التشغيل...';
+
+  // HTML/JS/CSS/SVG/Games — run directly in iframe (like Qwen)
+  if (['html', 'js', 'javascript', 'css', 'svg', 'game', 'web'].includes(cleanLang)) {
+    if (DOM.sandboxTitle) DOM.sandboxTitle.textContent = '🎮 معاينة الكود المباشرة';
+    if (DOM.sandboxContentArea) DOM.sandboxContentArea.style.display = 'flex';
+    if (DOM.sandboxTerminal) DOM.sandboxTerminal.classList.add('hidden');
+
+    let finalHtml = code;
+
+    // If pure JS only (no html tag), wrap in canvas game boilerplate
+    if (['js', 'javascript'].includes(cleanLang) && !code.includes('<html') && !code.includes('<body')) {
+      finalHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #111; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+<script>
+${code}
+<\/script>
+</body>
+</html>`;
+    }
+
+    // If pure CSS, wrap in demo HTML
+    if (cleanLang === 'css') {
+      finalHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+body { background: #111; color: #f0f0f0; font-family: sans-serif; padding: 20px; }
+${code}
+</style></head><body><div class="demo">تجربة تصميم CSS المباشر</div></body></html>`;
+    }
+
+    // SVG — embed in HTML
+    if (cleanLang === 'svg') {
+      finalHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;}</style></head><body>${code}</body></html>`;
+    }
+
+    if (DOM.sandboxIframe) {
+      DOM.sandboxIframe.srcdoc = finalHtml;
+    }
+
+    if (DOM.sandboxStatus) DOM.sandboxStatus.textContent = '🟢 يعمل الآن';
+    showToast('🎮 تم تشغيل الكود في المعاينة!');
+
+  } else if (['python', 'py', 'powershell', 'ps1', 'shell', 'bash', 'cmd'].includes(cleanLang)) {
+    // Backend execution for Python/PowerShell
+    if (DOM.sandboxTitle) DOM.sandboxTitle.textContent = '⚡ تنفيذ الكود على الخادم';
+    if (DOM.sandboxContentArea) DOM.sandboxContentArea.style.display = 'none';
+    if (DOM.sandboxTerminal) DOM.sandboxTerminal.classList.remove('hidden');
+    if (DOM.terminalOutput) DOM.terminalOutput.textContent = '⏳ جاري تنفيذ الكود...\n';
+
+    try {
+      const res = await fetch(`${CONFIG.httpBase}/api/v1/code/execute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ language: cleanLang, code }),
+      });
+
+      const data = await res.json();
+
+      if (data.is_gui_game) {
+        if (DOM.terminalOutput) DOM.terminalOutput.textContent = `✅ ${data.output || data.message}\n\n🎮 تم فتح نافذة اللعبة على سطح المكتب!`;
+        if (DOM.sandboxStatus) DOM.sandboxStatus.textContent = '🎮 نافذة اللعبة مفتوحة';
+      } else if (data.preview_url) {
+        // HTML result — open in iframe
+        if (DOM.sandboxContentArea) DOM.sandboxContentArea.style.display = 'flex';
+        if (DOM.sandboxTerminal) DOM.sandboxTerminal.classList.add('hidden');
+        if (DOM.sandboxIframe) DOM.sandboxIframe.src = `${CONFIG.httpBase}${data.preview_url}`;
+        if (DOM.sandboxStatus) DOM.sandboxStatus.textContent = '🟢 صفحة الويب تعمل';
+      } else {
+        const stdout = data.stdout || data.output || '';
+        const stderr = data.stderr || data.error || '';
+        const exitCode = data.return_code ?? data.code ?? 0;
+        const execTime = data.execution_time ? ` (${data.execution_time}s)` : '';
+
+        let output = '';
+        if (stdout) output += `📤 المخرجات:\n${stdout}\n`;
+        if (stderr) output += `\n⚠️ رسائل الخطأ:\n${stderr}\n`;
+        if (!stdout && !stderr) output = '✅ تم التنفيذ بنجاح (لا توجد مخرجات)';
+        output += `\n⏱️ كود الخروج: ${exitCode}${execTime}`;
+
+        if (DOM.terminalOutput) DOM.terminalOutput.textContent = output;
+        if (DOM.sandboxStatus) DOM.sandboxStatus.textContent = exitCode === 0 ? '✅ تم بنجاح' : '⚠️ انتهى بأخطاء';
+      }
+    } catch (err) {
+      if (DOM.terminalOutput) DOM.terminalOutput.textContent = `❌ خطأ في الاتصال بالخادم:\n${err.message}`;
+      if (DOM.sandboxStatus) DOM.sandboxStatus.textContent = '❌ خطأ في الاتصال';
+    }
+  } else {
+    // Generic unsupported language — just show in terminal view
+    if (DOM.sandboxContentArea) DOM.sandboxContentArea.style.display = 'none';
+    if (DOM.sandboxTerminal) DOM.sandboxTerminal.classList.remove('hidden');
+    if (DOM.terminalOutput) DOM.terminalOutput.textContent = `الكود (${cleanLang}):\n\n${code}`;
+    if (DOM.sandboxStatus) DOM.sandboxStatus.textContent = '📄 عرض فقط';
+  }
+}
+
+/**
+ * Copy code block content to clipboard
+ */
+function copyCodeBlock(codeId) {
+  const wrapper = document.getElementById(codeId);
+  if (!wrapper) return;
+  const codeEl = wrapper.querySelector('code');
+  const text = codeEl?.getAttribute('data-raw-code') || codeEl?.textContent || '';
+  if (!text.trim()) { showToast('⚠️ لا يوجد كود للنسخ'); return; }
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('✅ تم نسخ الكود إلى الحافظة');
+  }).catch(() => {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('✅ تم نسخ الكود');
+  });
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   16. IN-APP MEDIA PLAYER ENGINE — تشغيل اليوتيوب وسبوتيفاي داخل سمير نفسه
+   ═════════════════════════════════════════════════════ */
+function initMediaPlayerEngine() {
+  if (DOM.mediaCloseBtn) {
+    DOM.mediaCloseBtn.addEventListener('click', closeInAppMediaPlayer);
+  }
+  if (DOM.mediaPipBtn) {
+    DOM.mediaPipBtn.addEventListener('click', toggleInAppMediaPip);
+  }
+  if (DOM.mediaExternalBtn) {
+    DOM.mediaExternalBtn.addEventListener('click', () => {
+      if (state.currentMedia?.url) {
+        window.open(state.currentMedia.url, '_blank');
+      }
+    });
+  }
+}
+
+function openInAppMediaPlayer(data) {
+  if (!data || !data.embed_url) return;
+  state.currentMedia = data;
+
+  const service = (data.service || '').toLowerCase();
+  const isSpotify = service.includes('spotify') || data.embed_url.includes('spotify.com');
+  const serviceLabel = isSpotify ? '🎵 سبوتيفاي' : '🎬 يوتيوب';
+  const serviceTheme = isSpotify ? 'spotify-theme' : 'youtube-theme';
+  const badgeClass = isSpotify ? 'spotify' : 'youtube';
+
+  if (DOM.hudMediaCard) {
+    DOM.hudMediaCard.classList.remove('spotify-theme', 'youtube-theme');
+    DOM.hudMediaCard.classList.add(serviceTheme);
+  }
+
+  if (DOM.mediaServiceBadge) {
+    DOM.mediaServiceBadge.textContent = serviceLabel;
+    DOM.mediaServiceBadge.className = `media-badge ${badgeClass}`;
+  }
+
+  if (DOM.mediaPlayerTitle) {
+    DOM.mediaPlayerTitle.textContent = data.title || (isSpotify ? 'Spotify Player' : 'YouTube Player');
+  }
+
+  if (DOM.mediaIframe) {
+    DOM.mediaIframe.src = data.embed_url;
+  }
+
+  if (DOM.hudMediaPlayer) {
+    DOM.hudMediaPlayer.classList.remove('hidden');
+    DOM.hudMediaPlayer.classList.remove('minimized');
+  }
+
+  showToast(`▶ جاري تشغيل ${serviceLabel} مباشرة في سمير...`);
+}
+
+function closeInAppMediaPlayer() {
+  if (DOM.mediaIframe) {
+    DOM.mediaIframe.src = '';
+  }
+  if (DOM.hudMediaPlayer) {
+    DOM.hudMediaPlayer.classList.add('hidden');
+    DOM.hudMediaPlayer.classList.remove('fullscreen', 'minimized');
+  }
+  state.currentMedia = null;
+}
+
+function toggleInAppMediaPip() {
+  if (DOM.hudMediaPlayer) {
+    DOM.hudMediaPlayer.classList.toggle('minimized');
+    if (DOM.mediaPipBtn) {
+      DOM.mediaPipBtn.textContent = DOM.hudMediaPlayer.classList.contains('minimized') ? '🗖' : '🗗';
+    }
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   17. CUSTOM RULES & PROMPTS ENGINE — أوامر وبرومبتات المستخدم الدائمة
+   ═════════════════════════════════════════════════════ */
+
+function openCustomRulesModal() {
+  const modal = document.getElementById('custom-rules-modal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  loadCustomRules();
+}
+
+function closeCustomRulesModal() {
+  const modal = document.getElementById('custom-rules-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function loadCustomRules() {
+  const container = document.getElementById('custom-rules-list-container');
+  const badge = document.getElementById('custom-rules-count-badge');
+  if (!container) return;
+
+  container.innerHTML = '<div style="text-align:center;color:var(--text-ghost);font-size:12px;padding:16px;">⏳ جاري التحميل...</div>';
+
+  try {
+    const res = await fetch(`${CONFIG.httpBase}/api/v1/custom-rules`);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const rules = await res.json();
+
+    if (badge) badge.textContent = `${rules.length} ${rules.length === 1 ? 'أمر' : 'أوامر'}`;
+
+    if (rules.length === 0) {
+      container.innerHTML = '<div style="text-align:center;color:var(--text-ghost);font-size:12px;padding:16px;">لا توجد أوامر بعد، اكتب أول أمر بالأعلى ليحفظه سمير فوراً.</div>';
+      return;
+    }
+
+    container.innerHTML = '';
+    rules.forEach(rule => {
+      const card = document.createElement('div');
+      card.style.cssText = 'background:rgba(0,229,255,0.05);border:1px solid rgba(0,229,255,0.15);border-radius:10px;padding:10px 12px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;';
+
+      const textArea = document.createElement('div');
+      textArea.style.cssText = 'flex:1;min-width:0;';
+
+      const topicEl = document.createElement('div');
+      topicEl.style.cssText = 'font-size:12px;font-weight:700;color:var(--cyan);margin-bottom:4px;';
+      topicEl.textContent = '📌 ' + (rule.topic || 'أمر مخصص');
+
+      const instrEl = document.createElement('div');
+      instrEl.style.cssText = 'font-size:12.5px;color:var(--text-primary);line-height:1.5;word-break:break-word;';
+      instrEl.textContent = rule.correction || '';
+
+      const dateEl = document.createElement('div');
+      dateEl.style.cssText = 'font-size:10px;color:var(--text-ghost);margin-top:4px;font-family:var(--font-mono);';
+      dateEl.textContent = rule.created_at ? new Date(rule.created_at).toLocaleDateString('ar-EG') : '';
+
+      textArea.appendChild(topicEl);
+      textArea.appendChild(instrEl);
+      textArea.appendChild(dateEl);
+
+      const delBtn = document.createElement('button');
+      delBtn.title = 'حذف هذا الأمر';
+      delBtn.style.cssText = 'flex-shrink:0;background:rgba(255,58,58,0.15);border:1px solid rgba(255,58,58,0.3);border-radius:6px;padding:4px 8px;color:#ff3a3a;font-size:12px;cursor:pointer;';
+      delBtn.textContent = '🗑️';
+      delBtn.addEventListener('click', () => deleteCustomRule(rule.id));
+
+      card.appendChild(textArea);
+      card.appendChild(delBtn);
+      container.appendChild(card);
+    });
+  } catch (err) {
+    console.error('[Samir] Failed to load custom rules:', err);
+    container.innerHTML = '<div style="text-align:center;color:#ff3a3a;font-size:12px;padding:16px;">⚠️ فشل تحميل الأوامر. تأكد من اتصال الخادم.</div>';
+  }
+}
+
+async function saveCustomRule() {
+  const topicInput = document.getElementById('new-rule-topic');
+  const instrInput = document.getElementById('new-rule-instruction');
+  const btn = document.getElementById('btn-save-custom-rule');
+
+  const topic = topicInput?.value?.trim();
+  const instruction = instrInput?.value?.trim();
+
+  if (!instruction) {
+    showToast('⚠️ اكتب الأمر أو البرومبت أولاً قبل الحفظ');
+    return;
+  }
+
+  if (btn) {
+    btn.textContent = '⏳ جاري الحفظ...';
+    btn.disabled = true;
+  }
+
+  try {
+    const res = await fetch(`${CONFIG.httpBase}/api/v1/custom-rules`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        topic: topic || 'أمر مخصص',
+        instruction: instruction,
+      }),
+    });
+
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+
+    if (topicInput) topicInput.value = '';
+    if (instrInput) instrInput.value = '';
+
+    showToast('✅ تم حفظ الأمر في عقل سمير الدائم!');
+    await loadCustomRules();
+  } catch (err) {
+    console.error('[Samir] Failed to save custom rule:', err);
+    showToast('❌ فشل في حفظ الأمر. تحقق من الاتصال بالخادم.');
+  } finally {
+    if (btn) {
+      btn.textContent = '💾 حفظ الأمر في عقل سمير';
+      btn.disabled = false;
+    }
+  }
+}
+
+async function deleteCustomRule(ruleId) {
+  if (!confirm('هل أنت متأكد من حذف هذا الأمر نهائياً من ذاكرة سمير؟')) return;
+
+  try {
+    const res = await fetch(`${CONFIG.httpBase}/api/v1/custom-rules/${ruleId}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    showToast('🗑️ تم حذف الأمر بنجاح');
+    await loadCustomRules();
+  } catch (err) {
+    console.error('[Samir] Failed to delete custom rule:', err);
+    showToast('❌ فشل في حذف الأمر.');
+  }
 }
 

@@ -13,8 +13,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/style.css" />
-  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/static/style.css?v=4.5" />
+  <link rel="stylesheet" href="/style.css?v=4.5" />
 </head>
 <body class="jarvis-body">
   <!-- Subtle Ambient & Scanline Background Grid -->
@@ -42,9 +42,33 @@
         <span class="engine-icon">⚡</span>
         <span class="engine-name" id="top-engine-name">Gemini 3.5 Flash Lite</span>
       </div>
+      <div class="topbar-clock-pill" id="topbar-live-clock" title="الوقت والتاريخ الحي">
+        <span class="topbar-clock-icon">⏰</span>
+        <span class="topbar-clock-time" id="topbar-clock-time">--:--:--</span>
+      </div>
     </div>
 
     <div class="topbar-left">
+      <!-- Google / Account Sign-In & User Memory Profile -->
+      <div class="user-auth-wrapper" id="user-auth-wrapper">
+        <button class="topbar-btn google-login-btn" id="btn-google-login" title="تسجيل الدخول / إنشاء حساب لتفعيل ذاكرتك الخاصة">
+          <span style="font-size:15px;line-height:1;">👤</span>
+          <span class="btn-label" id="google-login-label">حسابي / دخول</span>
+        </button>
+
+        <div class="user-profile-chip hidden" id="user-profile-chip" title="إدارة حسابك وذاكرتك">
+          <img class="user-avatar" id="user-avatar" src="" alt="User" />
+          <span class="user-name" id="user-name">المستخدم</span>
+          <span class="memory-count-badge" id="user-memory-badge" title="الذكريات الخاصة المحفوظة">0</span>
+        </div>
+      </div>
+
+      <!-- Silent Typing / Voice Mode Indicator & Toggle -->
+      <button class="topbar-btn mode-pill-btn" id="btn-toggle-voice-mode" title="وضع الإدخال: الكتابة الصامتة / التحدث بصوت">
+        <span class="btn-icon" id="voice-mode-icon">✍️</span>
+        <span class="btn-label" id="voice-mode-label">كتابة صامتة</span>
+      </button>
+
       <!-- Hands-Free Wake Word Indicator & Button -->
       <button class="topbar-btn wake-word-btn active" id="btn-wake-word" title="الاستماع التلقائي الدائم عند نداء 'سمير' (اضغط للتشغيل أو الإيقاف)">
         <span class="wake-dot"></span>
@@ -63,11 +87,22 @@
         <span class="btn-label" id="quick-voice-label">الصوت</span>
       </button>
 
+      <!-- Mobile Quick Menu Button (يجمع الأوامر في شريط علوي أنيق للجوال) -->
+      <button class="topbar-btn mobile-menu-btn" id="btn-mobile-menu" title="قائمة الأوامر السريعة">
+        <span class="btn-icon">⚡</span>
+        <span class="btn-label">الأوامر</span>
+      </button>
+
       <!-- Action Buttons with Eye-Comfortable Styling -->
       <button class="topbar-btn" id="btn-history" title="سجل المحادثات والعمليات">
         <span class="btn-icon">📜</span>
         <span class="btn-label">السجل</span>
         <span class="btn-badge hidden" id="history-count-badge">0</span>
+      </button>
+
+      <button class="topbar-btn" id="btn-custom-rules" title="أوامري وبرومبتاتي المخصصة لسمير">
+        <span class="btn-icon">📝</span>
+        <span class="btn-label">أوامري</span>
       </button>
 
       <button class="topbar-btn" id="btn-settings" title="الإعدادات والأصوات">
@@ -87,11 +122,79 @@
     </div>
   </header>
 
+  <!-- Top Commands Dropdown for Mobile (شريط وقائمة الأوامر المنظمة للجوال) -->
+  <div class="mobile-commands-dropdown hidden" id="mobile-commands-dropdown">
+    <div class="mobile-cmd-header">
+      <span class="mobile-cmd-title">⚡ لوحة الأوامر السريعة لسمير</span>
+      <button class="mobile-cmd-close-btn" id="mobile-cmd-close-btn">✕</button>
+    </div>
+    <div class="mobile-cmd-grid">
+      <button class="mobile-cmd-card" id="mcmd-login">
+        <span class="cmd-icon">👤</span>
+        <span class="cmd-text">حسابي والذاكرة</span>
+      </button>
+      <button class="mobile-cmd-card" id="mcmd-voice-mode">
+        <span class="cmd-icon" id="mcmd-voice-mode-icon">✍️</span>
+        <span class="cmd-text" id="mcmd-voice-mode-text">وضع: كتابة</span>
+      </button>
+      <button class="mobile-cmd-card" id="mcmd-wake-word">
+        <span class="cmd-icon">👂</span>
+        <span class="cmd-text">أمر "سمير"</span>
+      </button>
+      <button class="mobile-cmd-card" id="mcmd-history">
+        <span class="cmd-icon">📜</span>
+        <span class="cmd-text">سجل المحادثات</span>
+      </button>
+      <button class="mobile-cmd-card" id="mcmd-settings">
+        <span class="cmd-icon">⚙️</span>
+        <span class="cmd-text">الإعدادات</span>
+      </button>
+      <button class="mobile-cmd-card" id="mcmd-share">
+        <span class="cmd-icon">🌐</span>
+        <span class="cmd-text">مشاركة الرابط</span>
+      </button>
+      <button class="mobile-cmd-card" id="mcmd-youtube">
+        <span class="cmd-icon">🎬</span>
+        <span class="cmd-text">مشغل يوتيوب</span>
+      </button>
+      <button class="mobile-cmd-card" id="mcmd-spotify">
+        <span class="cmd-icon">🎵</span>
+        <span class="cmd-text">سبوتيفاي</span>
+      </button>
+      <button class="mobile-cmd-card" id="mcmd-screenshot">
+        <span class="cmd-icon">📸</span>
+        <span class="cmd-text">لقطة الشاشة</span>
+      </button>
+      <button class="mobile-cmd-card" id="mcmd-custom-rules">
+        <span class="cmd-icon">📝</span>
+        <span class="cmd-text">أوامري وبرومبتاتي</span>
+      </button>
+      <button class="mobile-cmd-card" id="mcmd-sound">
+        <span class="cmd-icon" id="mcmd-sound-icon">🔊</span>
+        <span class="cmd-text" id="mcmd-sound-text">صوت سمير</span>
+      </button>
+    </div>
+  </div>
+
   <!-- Main Hologram Viewport -->
   <main class="hud-viewport">
 
     <!-- Left HUD Side Panel (حالة النظام والمهام المباشرة) -->
     <aside class="hud-side-panel hud-panel-left" id="hud-panel-left">
+      <!-- Section: HUD Live Clock & Date Widget (الساعة والتاريخ الحيان) -->
+      <div class="hud-widget hud-clock-widget" id="hud-clock-widget">
+        <div class="widget-header">
+          <span class="widget-icon">⏰</span>
+          <span class="widget-title">الساعة والتاريخ</span>
+          <span class="widget-tag tag-active" id="clock-status-tag">حي</span>
+        </div>
+        <div class="hud-clock-display">
+          <div class="hud-clock-time" id="hud-live-time">--:--:--</div>
+          <div class="hud-clock-date" id="hud-live-date">--/--/----</div>
+          <div class="hud-clock-hijri" id="hud-live-hijri">--</div>
+        </div>
+      </div>
+
       <!-- Section: System Telemetry -->
       <div class="hud-widget">
         <div class="widget-header">
@@ -337,6 +440,21 @@
 
     <!-- Right HUD Side Panel (فحص النظام الرقمي وتحليل الإشارة) -->
     <aside class="hud-side-panel hud-panel-right" id="hud-panel-right">
+
+      <!-- Section: Live Clock & Date -->
+      <div class="hud-widget hud-clock-widget">
+        <div class="widget-header">
+          <span class="widget-icon">🕐</span>
+          <span class="widget-title">الوقت والتاريخ</span>
+          <span class="widget-tag tag-active">مباشر</span>
+        </div>
+        <div class="hud-clock-display">
+          <div class="hud-clock-time" id="hud-live-clock">00:00:00</div>
+          <div class="hud-clock-date" id="hud-live-date">الجمعة، ١ يناير ٢٠٢٥</div>
+          <div class="hud-clock-hijri" id="hud-live-hijri"></div>
+        </div>
+      </div>
+
       <!-- Section: Digital System Checks -->
       <div class="hud-widget">
         <div class="widget-header">
@@ -461,6 +579,12 @@
         <span class="mic-waves"></span>
       </button>
 
+      <!-- Custom Rules Quick Button (ظاهر دائماً في شريط الأدوات) -->
+      <button class="bar-custom-rules-btn" id="btn-custom-rules-bar" title="أوامري وبرومبتاتي المحفوظة لسمير" onclick="openCustomRulesModal()" style="flex-shrink:0;background:rgba(0,229,255,0.1);border:1px solid rgba(0,229,255,0.3);border-radius:10px;padding:6px 10px;color:var(--cyan);font-size:13px;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;">
+        <span>📝</span>
+        <span style="font-size:11.5px;font-weight:600;">أوامري</span>
+      </button>
+
       <!-- Screen Vision Trigger (انظر لشاشتي وترجم) -->
       <button class="bar-screen-btn" id="hud-screen-btn" title="مشاركة الشاشة مع سمير (مراقبة ما تفعله مباشرة)">
         <span class="screen-icon">🖥️</span>
@@ -493,11 +617,13 @@
       <!-- AI Provider Selector Pill -->
       <div class="bar-provider-wrapper">
         <select id="hud-provider-select" class="bar-provider-select" title="اختر محرك الذكاء الاصطناعي">
-          <option value="auto">🧠 تلقائي (الأسرع)</option>
+          <option value="auto">🧠 تلقائي (الأذكى)</option>
+          <option value="duckai">🦆 DuckAI (مجاني 100% بدون مفتاح)</option>
+          <option value="qwen">🌐 Qwen (علي بابا / عربي ممتاز)</option>
           <option value="gemini">💎 Gemini 3.5 Flash</option>
-          <option value="groq">⚡ Groq (Llama 3)</option>
+          <option value="groq">⚡ Groq (Llama 3 فائق السرعة)</option>
           <option value="claude">🎭 Claude 3.5</option>
-          <option value="openai">🤖 OpenAI GPT</option>
+          <option value="openai">🤖 OpenAI GPT-4o</option>
         </select>
       </div>
 
@@ -571,10 +697,11 @@
           <div class="form-row">
             <label for="setting-tts-rate">سرعة التحدث:</label>
             <select id="setting-tts-rate" class="hud-select">
-              <option value="+0%">طبيعي (100%)</option>
-              <option value="+10%">سريع قليلاً (+10%)</option>
-              <option value="+20%">سريع وذكي (+20%)</option>
-              <option value="-10%">هادئ ومتأنٍ (-10%)</option>
+              <option value="1">1x — طبيعي</option>
+              <option value="2">2x — سريع</option>
+              <option value="3">3x — أسرع</option>
+              <option value="4">4x — سريع جداً</option>
+              <option value="5">5x — أقصى سرعة</option>
             </select>
           </div>
 
@@ -598,16 +725,31 @@
         <div class="modal-section-card">
           <div class="section-title">
             <span class="sec-icon">🧠</span>
-            <span>محركات الذكاء الاصطناعي الافتراضية</span>
+            <span>محركات الذكاء الاصطناعي الافتراضية والمفاتيح</span>
           </div>
           <div class="form-row">
-            <label for="setting-default-provider">المحرك المفضل:</label>
+            <label for="setting-default-provider">المحرك المفضل الافتراضي:</label>
             <select id="setting-default-provider" class="hud-select">
-              <option value="gemini">Gemini 3.5 Flash Lite (فائق السرعة - ننصح به)</option>
+              <option value="auto">تلقائي الذكي (Auto-Routing)</option>
+              <option value="duckai">DuckAI (مجاني 100% بدون مفتاح API)</option>
+              <option value="qwen">Qwen (علي بابا / عربي ممتاز ورياضيات)</option>
+              <option value="gemini">Gemini 3.5 Flash Lite (فائق السرعة والرؤية)</option>
               <option value="groq">Groq Llama 3 (أعلى سرعة استجابة)</option>
               <option value="claude">Anthropic Claude (كتابة وأكواد برمجية عميقة)</option>
               <option value="openai">OpenAI GPT-4o (شامل)</option>
             </select>
+          </div>
+          <div class="form-row" style="flex-direction:column;align-items:flex-start;gap:6px;">
+            <label for="setting-qwen-key" style="font-size:12.5px;color:#00e5ff;">🔑 مفتاح Qwen API (Alibaba DashScope - اختياري):</label>
+            <input type="password" id="setting-qwen-key" placeholder="ألصق مفتاح Qwen / DashScope هنا..." class="hud-input" style="width:100%;box-sizing:border-box;" />
+          </div>
+          <div class="form-row" style="flex-direction:column;align-items:flex-start;gap:6px;">
+            <label for="setting-gemini-key" style="font-size:12.5px;color:#00e5ff;">🔑 مفتاح Google Gemini (مجاني من AI Studio):</label>
+            <input type="password" id="setting-gemini-key" placeholder="ألصق مفتاح Gemini هنا (AIzaSy...)" class="hud-input" style="width:100%;box-sizing:border-box;" />
+          </div>
+          <div class="form-row" style="flex-direction:column;align-items:flex-start;gap:6px;">
+            <label for="setting-groq-key" style="font-size:12.5px;color:#00e5ff;">🔑 مفتاح Groq (مجاني وفائق السرعة - يدعم Qwen و Llama):</label>
+            <input type="password" id="setting-groq-key" placeholder="ألصق مفتاح Groq هنا (gsk_...)" class="hud-input" style="width:100%;box-sizing:border-box;" />
           </div>
           <div class="form-row">
             <label>حفظ سياق الذاكرة الدائمة:</label>
@@ -750,6 +892,181 @@
     </div>
   </div>
 
+  <!-- User Account & Isolated Memory Modal -->
+  <div class="hud-modal-overlay hidden" id="auth-modal-overlay">
+    <div class="hud-modal-card auth-modal-card">
+      <div class="modal-head">
+        <div class="modal-head-title">
+          <span style="font-size:20px;margin-left:8px;">🔐</span>
+          <span id="auth-modal-title">حساب المستخدم — الذاكرة المعزولة والخاصة</span>
+        </div>
+        <button class="modal-close-btn" id="auth-modal-close">✕</button>
+      </div>
+
+      <div class="modal-body auth-modal-body">
+        <!-- State: Not logged in -->
+        <div class="auth-logged-out" id="auth-view-logged-out">
+          <div class="auth-hero-icon">🧠</div>
+          <h3 class="auth-hero-title">ذاكرتك الشخصية المعزولة مع سمير</h3>
+          <p class="auth-desc">
+            سجل دخولك بحسابك الخاص أو أنشئ حساباً جديداً ليحفظ سمير معلوماتك وتفضيلاتك في مساحة خاصة بك وحدك.
+          </p>
+
+          <!-- Tabs: Login vs Register -->
+          <div class="auth-tabs-nav">
+            <button type="button" class="auth-tab-btn active" id="tab-btn-login">🔑 تسجيل الدخول</button>
+            <button type="button" class="auth-tab-btn" id="tab-btn-register">✨ إنشاء حساب جديد</button>
+          </div>
+
+          <!-- Tab Pane 1: Login Form -->
+          <div class="auth-tab-pane" id="pane-auth-login">
+            <div class="auth-form-body">
+              <div class="auth-input-group">
+                <label class="auth-input-label" for="login-email">📧 البريد الإلكتروني (Google أو أي بريد):</label>
+                <input type="email" id="login-email" class="modal-input" placeholder="مثال: name@gmail.com" dir="ltr" />
+              </div>
+
+              <div class="auth-input-group">
+                <label class="auth-input-label" for="login-password">🔒 كلمة المرور أو رمز الحماية (PIN):</label>
+                <div class="pwd-input-wrap">
+                  <input type="password" id="login-password" class="modal-input" placeholder="كلمة المرور (اتركها فارغة إذا دخلت بدونها سابقاً)..." dir="ltr" />
+                  <button type="button" class="btn-pwd-peek" id="btn-peek-login" title="إظهار/إخفاء">👁️</button>
+                </div>
+              </div>
+
+              <button type="button" class="modal-btn-save auth-primary-btn" id="btn-submit-login">
+                🚀 دخول لحسابي وتفعيل الذاكرة
+              </button>
+            </div>
+          </div>
+
+          <!-- Tab Pane 2: Register Form -->
+          <div class="auth-tab-pane hidden" id="pane-auth-register">
+            <div class="auth-form-body">
+              <div class="auth-input-group">
+                <label class="auth-input-label" for="reg-name">👤 اسمك الكريم (كيف يناديك سمير؟):</label>
+                <input type="text" id="reg-name" class="modal-input" placeholder="مثال: زياد، أحمد، أبو فهد..." />
+              </div>
+
+              <div class="auth-input-group">
+                <label class="auth-input-label" for="reg-email">📧 بريدك الإلكتروني (Google Mail):</label>
+                <input type="email" id="reg-email" class="modal-input" placeholder="مثال: your.email@gmail.com" dir="ltr" />
+              </div>
+
+              <div class="auth-input-group">
+                <label class="auth-input-label" for="reg-password">🔒 كلمة المرور لحماية ذكرياتك وبياناتك:</label>
+                <div class="pwd-input-wrap">
+                  <input type="password" id="reg-password" class="modal-input" placeholder="اكتب كلمة مرور أو رمز PIN..." dir="ltr" />
+                  <button type="button" class="btn-pwd-peek" id="btn-peek-reg" title="إظهار/إخفاء">👁️</button>
+                </div>
+              </div>
+
+              <button type="button" class="modal-btn-save auth-primary-btn" id="btn-submit-register">
+                ✨ إنشاء الحساب وتفعيل الذاكرة فوراً
+              </button>
+            </div>
+          </div>
+
+          <div class="auth-features-bar">
+            <span>🔒 خصوصية كاملة</span>
+            <span>📱 يعمل من الجوال والكمبيوتر</span>
+            <span>🧠 يتذكرك كل ما رجعت</span>
+          </div>
+        </div>
+
+        <!-- State: Logged in -->
+        <div class="auth-logged-in hidden" id="auth-view-logged-in">
+          <div class="user-card-large">
+            <img class="user-card-avatar" id="auth-user-avatar" src="" alt="Profile" />
+            <div class="user-card-meta">
+              <h3 id="auth-user-name">المستخدم</h3>
+              <span id="auth-user-email">email@gmail.com</span>
+              <span class="auth-status-tag">🟢 الذاكرة المعزولة نشطة وخاصة بك</span>
+            </div>
+          </div>
+
+          <div class="user-memories-section">
+            <div class="memories-header">
+              <h4>🧠 ذكرياتي المسجلة لدى سمير (<span id="auth-memories-count">0</span>)</h4>
+              <button class="mini-danger-btn" id="btn-wipe-my-memories" title="مسح كافة الذكريات">🗑️ مسح ذكرياتي بالكامل</button>
+            </div>
+            <div class="memories-list" id="auth-memories-list">
+              <div class="empty-memories-hint">لا توجد ذكريات مسجلة بعد. عندما تتحدث مع سمير وتخبره بأي معلومة عنك، سيحفظها هنا في حسابك فقط!</div>
+            </div>
+          </div>
+
+          <div class="auth-actions-footer">
+            <button class="modal-btn-cancel" id="btn-logout-google">🚪 تسجيل الخروج من هذا الجهاز</button>
+            <button class="modal-btn-save" id="btn-auth-done">حفظ وإغلاق ✓</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Rules & Prompts Modal — نافذة أوامري وبرومبتاتي الخاصة لسمير -->
+  <div id="custom-rules-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:16px;box-sizing:border-box;">
+    <div style="background:linear-gradient(145deg,#070f1e,#040c18);border:1px solid rgba(0,229,255,0.25);border-radius:18px;width:100%;max-width:600px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 0 60px rgba(0,229,255,0.15),0 20px 60px rgba(0,0,0,0.6);overflow:hidden;font-family:Tajawal,sans-serif;">
+      
+      <!-- Header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid rgba(0,229,255,0.12);flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:20px;">📝</span>
+          <div>
+            <div style="font-size:15px;font-weight:800;color:#00e5ff;letter-spacing:0.5px;">أوامري وبرومبتاتي الخاصة لسمير</div>
+            <div style="font-size:11.5px;color:rgba(255,255,255,0.4);margin-top:2px;">تُحفظ في عقل سمير الدائم وتُطبَّق في كل ردوده</div>
+          </div>
+        </div>
+        <button id="custom-rules-close-btn" onclick="closeCustomRulesModal()" style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:6px 10px;color:rgba(255,255,255,0.6);font-size:14px;cursor:pointer;">✕</button>
+      </div>
+
+      <!-- Body (scrollable) -->
+      <div style="flex:1;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:16px;">
+        
+        <!-- Add New Rule Form -->
+        <div style="background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.2);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;">
+          <div style="font-size:13px;font-weight:700;color:#00e5ff;margin-bottom:2px;">➕ إضافة أمر أو برومبت جديد</div>
+          <input 
+            type="text" 
+            id="new-rule-topic" 
+            placeholder="عنوان الأمر (مثال: أسلوب الرد، البرمجة، الرسم...)" 
+            style="width:100%;box-sizing:border-box;background:rgba(2,7,18,0.9);border:1px solid rgba(0,229,255,0.25);border-radius:10px;padding:12px 14px;color:#fff;font-size:16px;outline:none;font-family:Tajawal,sans-serif;direction:rtl;text-align:right;"
+          />
+          <textarea 
+            id="new-rule-instruction" 
+            rows="3" 
+            placeholder="اكتب البرومبت أو الأمر بالتفصيل (مثال: احرص دائماً على الاختصار، لا تستخدم القوائم النقطية...)" 
+            style="width:100%;box-sizing:border-box;background:rgba(2,7,18,0.9);border:1px solid rgba(0,229,255,0.25);border-radius:10px;padding:12px 14px;color:#fff;font-size:16px;line-height:1.6;resize:vertical;outline:none;font-family:Tajawal,sans-serif;direction:rtl;text-align:right;min-height:90px;"
+          ></textarea>
+          <button 
+            id="btn-save-custom-rule"
+            onclick="saveCustomRule()"
+            style="align-self:flex-start;background:linear-gradient(135deg,#0066cc,#00e5ff);border:none;border-radius:10px;padding:10px 22px;color:#020712;font-weight:800;font-size:13.5px;cursor:pointer;display:flex;align-items:center;gap:7px;font-family:Tajawal,sans-serif;"
+          >
+            💾 حفظ الأمر في عقل سمير
+          </button>
+        </div>
+
+        <!-- Saved Rules List -->
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <span style="font-size:13px;font-weight:700;color:#00e5ff;">📋 الأوامر والبرومبتات المحفوظة:</span>
+            <span id="custom-rules-count-badge" style="font-size:12px;color:rgba(255,255,255,0.35);font-family:monospace;">0 أوامر</span>
+          </div>
+          <div id="custom-rules-list-container" style="display:flex;flex-direction:column;gap:8px;">
+            <div style="text-align:center;color:rgba(255,255,255,0.3);font-size:12.5px;padding:20px 0;">لا توجد أوامر بعد، اكتب أول أمر بالأعلى ليحفظه سمير فوراً.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div style="padding:12px 20px;border-top:1px solid rgba(255,255,255,0.07);display:flex;justify-content:flex-end;flex-shrink:0;">
+        <button onclick="closeCustomRulesModal()" id="custom-rules-done-btn" style="background:rgba(0,229,255,0.12);border:1px solid rgba(0,229,255,0.3);border-radius:10px;padding:8px 22px;color:#00e5ff;font-weight:700;font-size:13.5px;cursor:pointer;font-family:Tajawal,sans-serif;">تم ✓</button>
+      </div>
+    </div>
+  </div>
+
+
   <!-- HUD Real Alarm Ringing Overlay (منبه سمير الحقيقي بصوت ورنين واهتزاز) -->
   <div class="hud-alarm-overlay hidden" id="hud-alarm-overlay">
     <div class="hud-alarm-modal">
@@ -767,7 +1084,80 @@
   <!-- Floating Toast Notification -->
   <div class="hud-toast hidden" id="hud-toast"></div>
 
+  <!-- ████████████████████████████████████████████████████████████████████
+       CODE SANDBOX MODAL — تشغيل الكود والألعاب المباشرة كـ Qwen
+       ████████████████████████████████████████████████████████████████████ -->
+  <div class="hud-modal-overlay hidden" id="sandbox-modal-overlay">
+    <div class="sandbox-modal-card" id="sandbox-modal-card">
+      <div class="sandbox-header">
+        <div class="sandbox-title-group">
+          <span class="sandbox-icon">🎮</span>
+          <span class="sandbox-title" id="sandbox-modal-title">تشغيل الكود</span>
+          <span class="sandbox-badge" id="sandbox-lang-badge">HTML</span>
+        </div>
+        <div class="sandbox-controls">
+          <button class="sandbox-ctrl-btn" id="sandbox-reload-btn" title="إعادة تشغيل الكود">🔄</button>
+          <button class="sandbox-ctrl-btn" id="sandbox-fullscreen-btn" title="ملء الشاشة">⛶</button>
+          <button class="sandbox-ctrl-btn danger" id="sandbox-close-btn" title="إغلاق">✕</button>
+        </div>
+      </div>
+
+      <!-- iframe sandbox for HTML/JS/CSS games -->
+      <div class="sandbox-content" id="sandbox-content-area">
+        <iframe id="sandbox-iframe"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-pointer-lock allow-downloads"
+          allow="autoplay; fullscreen"
+          class="sandbox-iframe"
+        ></iframe>
+      </div>
+
+      <!-- Terminal output for Python/PowerShell -->
+      <div class="sandbox-terminal hidden" id="sandbox-terminal">
+        <div class="terminal-header">
+          <span>⚡ مخرجات الكونسول</span>
+          <button class="terminal-clear-btn" id="terminal-clear-btn" onclick="document.getElementById('terminal-output').textContent=''">مسح</button>
+        </div>
+        <pre class="terminal-output" id="terminal-output">سيتم عرض مخرجات الكود هنا...</pre>
+      </div>
+
+      <div class="sandbox-footer">
+        <span class="sandbox-status" id="sandbox-status">جاهز للتشغيل 🟢</span>
+        <button class="sandbox-run-again-btn" id="sandbox-run-again-btn">▶ تشغيل مجدداً</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ████████████████████████████████████████████████████████████████████
+       HUD IN-APP MEDIA PLAYER (يوتيوب وسبوتيفاي داخل سمير نفسه)
+       ████████████████████████████████████████████████████████████████████ -->
+  <div class="hud-media-container hidden" id="hud-media-player">
+    <div class="hud-media-card" id="hud-media-card">
+      <div class="hud-media-header">
+        <div class="media-title-group">
+          <span class="media-badge" id="media-service-badge">🎬 يوتيوب</span>
+          <span class="media-title" id="media-player-title">مشغل الوسائط</span>
+        </div>
+        <div class="media-controls">
+          <button class="media-ctrl-btn" id="media-external-btn" title="فتح في نافذة مستقلة">↗️</button>
+          <button class="media-ctrl-btn" id="media-pip-btn" title="تصغير في الزاوية / نافذة عائمة">🗗</button>
+          <button class="media-ctrl-btn danger" id="media-close-btn" title="إغلاق المشغل">✕</button>
+        </div>
+      </div>
+      <div class="hud-media-body" id="hud-media-body">
+        <iframe
+          id="media-iframe"
+          class="media-iframe"
+          src=""
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          referrerpolicy="strict-origin-when-cross-origin"
+          allowfullscreen
+        ></iframe>
+      </div>
+    </div>
+  </div>
+
   <!-- Scripts -->
-  <script src="/static/app.js"></script>
+  <script src="/static/app.js?v=4.5"></script>
+
 </body>
 </html>

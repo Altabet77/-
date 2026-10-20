@@ -94,9 +94,19 @@ class QwenProvider(AIProvider):
         temperature: float = 0.6,
     ) -> Dict[str, Any]:
         if not self.is_configured():
-            raise RuntimeError(
-                "Qwen API key is not configured. Please add QWEN_API_KEY or GROQ_API_KEY in .env or settings."
-            )
+            try:
+                from app.ai.duckai_provider import DuckAIProvider
+                duck = DuckAIProvider()
+                res = await duck.generate_response(messages, tools, temperature)
+                res["provider"] = "qwen (via DuckAI)"
+                return res
+            except Exception:
+                return {
+                    "content": "مرحباً بك! لتفعيل نموذج Qwen (علي بابا) بالكامل، يرجى إضافة مفتاح Qwen API أو مفتاح Groq المجاني من إعدادات سمير ⚙️، أو اختيار محرك DuckAI المجاني مباشرة.",
+                    "tool_calls": [],
+                    "provider": "qwen",
+                    "model": self.model,
+                }
 
         prepared_msgs = self._prepare_messages(messages)
 

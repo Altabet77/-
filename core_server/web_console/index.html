@@ -617,11 +617,13 @@
       <!-- AI Provider Selector Pill -->
       <div class="bar-provider-wrapper">
         <select id="hud-provider-select" class="bar-provider-select" title="اختر محرك الذكاء الاصطناعي">
-          <option value="auto">🧠 تلقائي (الأسرع)</option>
+          <option value="auto">🧠 تلقائي (الأذكى)</option>
+          <option value="duckai">🦆 DuckAI (مجاني 100% بدون مفتاح)</option>
+          <option value="qwen">🌐 Qwen (علي بابا / عربي ممتاز)</option>
           <option value="gemini">💎 Gemini 3.5 Flash</option>
-          <option value="groq">⚡ Groq (Llama 3)</option>
+          <option value="groq">⚡ Groq (Llama 3 فائق السرعة)</option>
           <option value="claude">🎭 Claude 3.5</option>
-          <option value="openai">🤖 OpenAI GPT</option>
+          <option value="openai">🤖 OpenAI GPT-4o</option>
         </select>
       </div>
 
@@ -723,16 +725,31 @@
         <div class="modal-section-card">
           <div class="section-title">
             <span class="sec-icon">🧠</span>
-            <span>محركات الذكاء الاصطناعي الافتراضية</span>
+            <span>محركات الذكاء الاصطناعي الافتراضية والمفاتيح</span>
           </div>
           <div class="form-row">
-            <label for="setting-default-provider">المحرك المفضل:</label>
+            <label for="setting-default-provider">المحرك المفضل الافتراضي:</label>
             <select id="setting-default-provider" class="hud-select">
-              <option value="gemini">Gemini 3.5 Flash Lite (فائق السرعة - ننصح به)</option>
+              <option value="auto">تلقائي الذكي (Auto-Routing)</option>
+              <option value="duckai">DuckAI (مجاني 100% بدون مفتاح API)</option>
+              <option value="qwen">Qwen (علي بابا / عربي ممتاز ورياضيات)</option>
+              <option value="gemini">Gemini 3.5 Flash Lite (فائق السرعة والرؤية)</option>
               <option value="groq">Groq Llama 3 (أعلى سرعة استجابة)</option>
               <option value="claude">Anthropic Claude (كتابة وأكواد برمجية عميقة)</option>
               <option value="openai">OpenAI GPT-4o (شامل)</option>
             </select>
+          </div>
+          <div class="form-row" style="flex-direction:column;align-items:flex-start;gap:6px;">
+            <label for="setting-qwen-key" style="font-size:12.5px;color:#00e5ff;">🔑 مفتاح Qwen API (Alibaba DashScope - اختياري):</label>
+            <input type="password" id="setting-qwen-key" placeholder="ألصق مفتاح Qwen / DashScope هنا..." class="hud-input" style="width:100%;box-sizing:border-box;" />
+          </div>
+          <div class="form-row" style="flex-direction:column;align-items:flex-start;gap:6px;">
+            <label for="setting-gemini-key" style="font-size:12.5px;color:#00e5ff;">🔑 مفتاح Google Gemini (مجاني من AI Studio):</label>
+            <input type="password" id="setting-gemini-key" placeholder="ألصق مفتاح Gemini هنا (AIzaSy...)" class="hud-input" style="width:100%;box-sizing:border-box;" />
+          </div>
+          <div class="form-row" style="flex-direction:column;align-items:flex-start;gap:6px;">
+            <label for="setting-groq-key" style="font-size:12.5px;color:#00e5ff;">🔑 مفتاح Groq (مجاني وفائق السرعة - يدعم Qwen و Llama):</label>
+            <input type="password" id="setting-groq-key" placeholder="ألصق مفتاح Groq هنا (gsk_...)" class="hud-input" style="width:100%;box-sizing:border-box;" />
           </div>
           <div class="form-row">
             <label>حفظ سياق الذاكرة الدائمة:</label>

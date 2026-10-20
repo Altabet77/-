@@ -1215,7 +1215,7 @@ window.downloadImageFile = async function(url, filename) {
   text = text.replace(/(?:\.\/|\.\.\/|\/)?(?:web_console\/)?generated\/([^\s)]+\.(?:png|jpg|jpeg|webp))/gi, '/static/generated/$1');
 
   // تحويل أي رابط صورة مباشر إلى صيغة ماركداون تلقائياً
-  text = text.replace(/(^|[\s\n])(\/(?:static\/)?generated\/[^\s<>]+\.(?:png|jpg|jpeg|webp)|https?:\/\/[^\s<>]+\.(?:png|jpg|jpeg|webp)(?:\?[^\s<>]*)?|https?:\/\/image\.pollinations\.ai\/prompt\/[^\s<>]+)/gi, (match, prefix, url) => {
+  text = text.replace(/(^|[\s\n])(\/(?:static\/)?generated\/[^\s<>]+\.(?:png|jpg|jpeg|webp|svg)|https?:\/\/[^\s<>]+\.(?:png|jpg|jpeg|webp|svg)(?:\?[^\s<>]*)?)/gi, (match, prefix, url) => {
     return `${prefix}![صورة رسمها سمير](${url})`;
   });
 
@@ -1827,9 +1827,38 @@ async function saveSettings() {
     const prov = DOM.settingDefaultProvider?.value;
     if (prov && DOM.providerSelect) {
       DOM.providerSelect.value = prov;
+      try {
+        await fetch(`${CONFIG.httpBase}/api/v1/providers/set-default`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider: prov })
+        });
+      } catch (ex) {
+        console.warn('[Samir] Could not set default provider:', ex);
+      }
     }
 
-    showToast('تم حفظ جميع الإعدادات بنجاح ⚙️');
+    // 4. Save AI API Keys if provided
+    const qwenKey = document.getElementById('setting-qwen-key')?.value?.trim();
+    const geminiKey = document.getElementById('setting-gemini-key')?.value?.trim();
+    const groqKey = document.getElementById('setting-groq-key')?.value?.trim();
+    if (qwenKey || geminiKey || groqKey) {
+      try {
+        await fetch(`${CONFIG.httpBase}/api/v1/providers/keys`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            qwen_api_key: qwenKey || undefined,
+            gemini_api_key: geminiKey || undefined,
+            groq_api_key: groqKey || undefined,
+          })
+        });
+      } catch (ex) {
+        console.warn('[Samir] Could not save API keys:', ex);
+      }
+    }
+
+    showToast('تم حفظ جميع الإعدادات والمحركات بنجاح ⚙️');
     if (DOM.settingsModal) DOM.settingsModal.classList.add('hidden');
   } catch (e) {
     showToast('حدث خطأ أثناء حفظ الإعدادات');
@@ -1931,10 +1960,13 @@ function initHudDashboard() {
         if (DOM.providerSelect) {
           DOM.providerSelect.focus();
           const current = DOM.providerSelect.value;
-          const options = ['gemini', 'claude', 'groq', 'auto'];
+          const options = ['auto', 'duckai', 'qwen', 'gemini', 'groq', 'claude', 'openai'];
           const nextIdx = (options.indexOf(current) + 1) % options.length;
           DOM.providerSelect.value = options[nextIdx];
-          showToast(`⚡ تم التبديل إلى: ${DOM.providerSelect.options[DOM.providerSelect.selectedIndex].text}`);
+          const selectedText = DOM.providerSelect.options[DOM.providerSelect.selectedIndex]?.text || options[nextIdx];
+          const topEngineName = document.getElementById('top-engine-name');
+          if (topEngineName) topEngineName.textContent = selectedText;
+          showToast(`⚡ تم التبديل إلى: ${selectedText}`);
         }
       } else if (action === 'security-auth') {
         showToast('🛡️ فحص الأمان: جميع مفاتيح API والجلسات مشفرة محلياً بنجاح.');
@@ -2197,6 +2229,25 @@ function setupEventListeners() {
         e.preventDefault();
         handleSendText();
       }
+    });
+  }
+
+  // Provider Select listener
+  if (DOM.providerSelect) {
+    const savedProv = localStorage.getItem('samir_ai_provider');
+    if (savedProv && Array.from(DOM.providerSelect.options).some(o => o.value === savedProv)) {
+      DOM.providerSelect.value = savedProv;
+      const topEngineName = document.getElementById('top-engine-name');
+      if (topEngineName) topEngineName.textContent = DOM.providerSelect.options[DOM.providerSelect.selectedIndex]?.text;
+    }
+
+    DOM.providerSelect.addEventListener('change', () => {
+      const selectedVal = DOM.providerSelect.value;
+      const selectedText = DOM.providerSelect.options[DOM.providerSelect.selectedIndex]?.text || selectedVal;
+      localStorage.setItem('samir_ai_provider', selectedVal);
+      const topEngineName = document.getElementById('top-engine-name');
+      if (topEngineName) topEngineName.textContent = selectedText;
+      showToast(`⚡ تم التبديل إلى: ${selectedText}`);
     });
   }
 
