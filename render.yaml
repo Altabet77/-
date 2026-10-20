@@ -4,14 +4,13 @@ services:
     runtime: docker
     dockerfilePath: ./Dockerfile
     plan: free
-    region: frankfurt
+    healthCheckPath: /health
     envVars:
-      - key: PORT
-        value: 8000
       - key: DEFAULT_AI_PROVIDER
         value: duckai
       - key: GEMINI_API_KEY
         sync: false
       - key: GROQ_API_KEY
         sync: false
+
 
