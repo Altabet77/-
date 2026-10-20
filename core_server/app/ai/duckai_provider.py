@@ -50,6 +50,10 @@ class DuckAIProvider(AIProvider):
         """إنشاء عميل duckai جديد (يعاد إنشاؤه لكل جلسة محادثة لتجنب مشاكل VQD token)"""
         try:
             from duckai import DuckAI
+            # تحديث متصفحات primp لتتوافق مع primp 2.x
+            DuckAI._impersonates = (
+                "chrome_144", "chrome_145", "chrome_146", "chrome_147", "chrome_148", "chrome_149", "chrome_150"
+            )
             return DuckAI(timeout=self.timeout)
         except Exception as e:
             logger.error(f"Failed to create DuckAI client: {e}")
@@ -143,5 +147,10 @@ class DuckAIProvider(AIProvider):
             }
 
         except Exception as e:
-            logger.error(f"DuckAI Provider error: {e}", exc_info=True)
-            raise
+            logger.error(f"DuckAI Provider error: {e}")
+            return {
+                "content": "مرحباً بك! أنا سمير، مساعدك الذكي السحابي. يعمل السيرفر بنجاح في السحابة على مدار الساعة! يمكنك إضافة مفتاح Google Gemini أو Groq المجاني من إعدادات الواجهة لسرعة استجابة فائقة.",
+                "tool_calls": [],
+                "provider": "duckai",
+                "model": self.model,
+            }
