@@ -1,5 +1,6 @@
 import aiosqlite
 import logging
+from pathlib import Path
 from typing import AsyncGenerator
 from app.core.config import settings
 
