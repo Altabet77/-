@@ -146,6 +146,16 @@ async def favicon():
     return FileResponse(str(WEB_CONSOLE_DIR / "samir-logo.png"), media_type="image/png")
 
 
+@app.get("/health")
+async def health():
+    return {
+        "status": "ok",
+        "assistant": "Samir (سمير)",
+        "version": "1.1.0",
+        "mode": "cloud_24_7"
+    }
+
+
 @app.get("/")
 async def root():
     index_file = WEB_CONSOLE_DIR / "index.html"
@@ -157,6 +167,7 @@ async def root():
         "version": "1.1.0",
         "docs": "/docs",
     }
+
 
 
 @app.get("/style.css", include_in_schema=False)
