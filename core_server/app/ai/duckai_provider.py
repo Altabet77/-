@@ -40,9 +40,9 @@ class DuckAIProvider(AIProvider):
     ⚠️ لا يدعم استدعاء الأدوات (Tool Calling) — يستخدم للمحادثات النصية فقط.
     """
 
-    def __init__(self, model: str = "gpt-4o-mini", timeout: int = 30):
+    def __init__(self, model: str = "gpt-4o-mini", timeout: int = 5):
         self.model = model if model in DUCKAI_MODELS else "gpt-4o-mini"
-        self.timeout = timeout
+        self.timeout = min(timeout, 5)
         self._client = None
         logger.info(f"DuckAI Provider initialized — model: {self.model} (free, no API key)")
 
