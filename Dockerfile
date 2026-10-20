@@ -33,7 +33,8 @@ RUN mkdir -p /app/data /app/projects /app/data/sandbox /app/uploads
 
 EXPOSE 10000
 
-# تشغيل خادم سمير السحابي 24/7 عبر run_server.py
-CMD ["python", "run_server.py"]
+# تشغيل خادم سمير السحابي مباشرة عبر uvicorn على 0.0.0.0
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-10000}
+
 
 
