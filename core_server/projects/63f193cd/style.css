@@ -1,0 +1,38 @@
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+        background: #0a0e17;
+        color: #fff;
+        font-family: 'Segoe UI', Tahoma, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        overflow: hidden;
+    }
+    #game-container {
+        position: relative;
+        border: 2px solid #00ffcc;
+        border-radius: 12px;
+        box-shadow: 0 0 30px rgba(0, 255, 204, 0.3);
+        overflow: hidden;
+        background: #02050c;
+    }
+    canvas { display: block; }
+    #hud {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 10px 16px;
+        background: rgba(10, 14, 23, 0.85);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 14px;
+        border-top: 1px solid rgba(0, 255, 204, 0.2);
+    }
+    #score-board { font-weight: bold; color: #00ffcc; }
+    #game-controls { color: #8892b0; font-size: 12px; }
+    

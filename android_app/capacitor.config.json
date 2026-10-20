@@ -1,0 +1,31 @@
+{
+  "appId": "com.samir.ai.assistant",
+  "appName": "سمير",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false,
+    "backgroundColor": "#0d1117",
+    "overrideUserAgent": "SamirAI-Android/1.0"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1500,
+      "backgroundColor": "#0d1117",
+      "showSpinner": false,
+      "androidSpinnerStyle": "small",
+      "iosSpinnerStyle": "small",
+      "launchAutoHide": true
+    },
+    "StatusBar": {
+      "style": "dark",
+      "backgroundColor": "#0d1117"
+    }
+  }
+}

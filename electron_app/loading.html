@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>سمير — جاري التشغيل</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #000814;
+    color: #00d4ff;
+    font-family: 'Segoe UI', sans-serif;
+    display: flex; align-items: center; justify-content: center;
+    height: 100vh; overflow: hidden;
+  }
+  .container { text-align: center; }
+  .arc {
+    width: 120px; height: 120px; border-radius: 50%;
+    border: 3px solid transparent;
+    border-top-color: #00d4ff;
+    border-right-color: #0066ff;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 30px;
+    box-shadow: 0 0 30px #00d4ff55;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  h1 { font-size: 28px; letter-spacing: 8px; margin-bottom: 10px; }
+  p { color: #00d4ff88; font-size: 13px; letter-spacing: 3px; }
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="arc"></div>
+    <h1>SAMIR</h1>
+    <p>INITIALIZING SYSTEMS...</p>
+  </div>
+</body>
+</html>

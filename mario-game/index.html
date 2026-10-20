@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Super Zack Bros - مغامرة زاك</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Tajawal:wght@500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="game-wrapper">
+    <!-- Header Controls & Branding -->
+    <header class="game-header">
+      <div class="brand">
+        <span class="retro-badge">16-BIT RETRO</span>
+        <h1>مغامرة زاك <span>(Super Zack Bros)</span></h1>
+      </div>
+      <div class="header-actions">
+        <button id="btn-sound" class="arcade-btn-mini" title="كتم/تشغيل الصوت">🔊 صوت: تشغيل</button>
+        <button id="btn-crt" class="arcade-btn-mini active" title="تأثير شاشة قديمة">📺 CRT</button>
+        <button id="btn-fullscreen" class="arcade-btn-mini" title="ملء الشاشة">⛶ شاشة كاملة</button>
+      </div>
+    </header>
+
+    <!-- Canvas Container with CRT overlay -->
+    <div id="screen-container" class="screen-container crt-active">
+      <div class="crt-scanlines"></div>
+      <div class="crt-vignette"></div>
+
+      <canvas id="gameCanvas" width="800" height="450"></canvas>
+
+      <!-- UI HUD Overlay -->
+      <div id="hud-overlay" class="hud-overlay">
+        <div class="hud-item">
+          <span class="hud-label">ZACK</span>
+          <span id="hud-score" class="hud-value">000000</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">COINS</span>
+          <span class="hud-value"><span class="coin-icon">🪙</span> x<span id="hud-coins">00</span></span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">WORLD</span>
+          <span id="hud-world" class="hud-value">1-1</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">TIME</span>
+          <span id="hud-time" class="hud-value">400</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">LIVES</span>
+          <span id="hud-lives" class="hud-value">❤️ x3</span>
+        </div>
+      </div>
+
+      <!-- Start / Menu Overlay -->
+      <div id="menu-screen" class="screen-overlay active">
+        <div class="menu-content">
+          <div class="logo-box">
+            <h2 class="pixel-title">SUPER ZACK</h2>
+            <div class="pixel-subtitle">مغامرة البكسل الكلاسيكية</div>
+          </div>
+          <div class="character-preview">
+            <div class="sprite-hero-anim"></div>
+          </div>
+          <p class="press-start-prompt">اضغط <span class="highlight">مسافة (SPACE)</span> أو الزر للبدء</p>
+          <button id="btn-start" class="arcade-btn primary-start">🎮 ابـدأ اللـعـب</button>
+          
+          <div class="controls-guide">
+            <div class="guide-col">
+              <strong>⌨️ لوحة المفاتيح:</strong>
+              <div>الحركة: <kbd>A</kbd> <kbd>D</kbd> أو <kbd>⬅️</kbd> <kbd>➡️</kbd></div>
+              <div>القفز: <kbd>SPACE</kbd> أو <kbd>W</kbd> أو <kbd>⬆️</kbd></div>
+              <div>الجري / إطلاق النار: <kbd>Shift</kbd> أو <kbd>X</kbd> أو <kbd>F</kbd></div>
+              <div>الدخول للأنابيب: <kbd>S</kbd> أو <kbd>⬇️</kbd></div>
+              <div>إيقاف مؤقت: <kbd>P</kbd></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Game Over Overlay -->
+      <div id="gameover-screen" class="screen-overlay hidden">
+        <div class="menu-content">
+          <h2 class="gameover-title">GAME OVER</h2>
+          <p class="gameover-msg">حاول مرة أخرى يا بطل!</p>
+          <div class="final-stats">
+            <div>النقاط: <span id="go-score">0</span></div>
+            <div>العملات: <span id="go-coins">0</span></div>
+          </div>
+          <button id="btn-restart" class="arcade-btn primary-start">🔄 إعادة المحاولة</button>
+        </div>
+      </div>
+
+      <!-- Level Clear Overlay -->
+      <div id="win-screen" class="screen-overlay hidden">
+        <div class="menu-content">
+          <h2 class="win-title">STAGE CLEAR! 🎉</h2>
+          <p class="win-msg">كفو يا زاك! وصلت لنهاية المرحلة بنجاح!</p>
+          <div class="final-stats">
+            <div>مجموع النقاط: <span id="win-score">0</span></div>
+            <div>بونص الوقت: <span id="win-time-bonus">0</span></div>
+          </div>
+          <button id="btn-next-level" class="arcade-btn primary-start">⭐ لعب المرحلة التالية / إعادة</button>
+        </div>
+      </div>
+
+      <!-- Pause Overlay -->
+      <div id="pause-screen" class="screen-overlay hidden">
+        <div class="menu-content">
+          <h2 class="pause-title">PAUSED</h2>
+          <p>اضغط <kbd>P</kbd> أو الزر للاستئناف</p>
+          <button id="btn-resume" class="arcade-btn">▶️ استئناف</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- On-screen Touch Controls for Mobile/Tablet -->
+    <div id="touch-controls" class="touch-controls">
+      <div class="touch-dpad">
+        <button id="touch-left" class="t-btn dpad-btn" data-key="ArrowLeft">◀</button>
+        <button id="touch-down" class="t-btn dpad-btn" data-key="ArrowDown">▼</button>
+        <button id="touch-right" class="t-btn dpad-btn" data-key="ArrowRight">▶</button>
+      </div>
+      <div class="touch-actions">
+        <button id="touch-action" class="t-btn action-btn fire-btn" data-key="KeyX">🔥 Run/Fire</button>
+        <button id="touch-jump" class="t-btn action-btn jump-btn" data-key="Space">⬆ Jump</button>
+      </div>
+    </div>
+
+    <!-- Game Features Footer -->
+    <footer class="game-footer">
+      <div class="features-list">
+        <span>✨ <strong>المميزات:</strong></span>
+        <span>🍄 فطر التكبير (Super Mushroom)</span>
+        <span>🔥 زهرة النار (Fire Flower)</span>
+        <span>⭐ نجمة الحصانة الخارقة (Star Invincibility)</span>
+        <span>🐢 أعداء كلاسيكيون وسلاحف قابلة للركل</span>
+        <span>🎶 مؤثرات وموسيقى Chiptune مدمجة بدون نت</span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="audio.js"></script>
+  <script src="sprites.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

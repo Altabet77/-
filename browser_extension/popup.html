@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>سمير الذكي | Samir AI</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body {
+      width: 360px;
+      background: #0d1117;
+      color: #e6edf3;
+      padding: 16px;
+      overflow: hidden;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      margin-bottom: 14px;
+    }
+    .logo-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo-icon {
+      font-size: 20px;
+    }
+    .logo-title {
+      font-size: 15px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #00e5ff, #6366f1);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ef4444;
+      display: inline-block;
+    }
+    .status-badge.online {
+      color: #10b981;
+      border-color: rgba(16, 185, 129, 0.3);
+      background: rgba(16, 185, 129, 0.1);
+    }
+    .status-badge.online .status-dot {
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+    }
+    .status-badge.offline {
+      color: #ef4444;
+      border-color: rgba(239, 68, 68, 0.3);
+      background: rgba(239, 68, 68, 0.1);
+    }
+    .actions-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .action-btn {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #e6edf3;
+      padding: 9px 8px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+    .action-btn:hover {
+      background: rgba(99, 102, 241, 0.18);
+      border-color: rgba(99, 102, 241, 0.4);
+      transform: translateY(-1px);
+    }
+    .chat-box {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 10px;
+      margin-bottom: 12px;
+    }
+    .response-area {
+      max-height: 140px;
+      overflow-y: auto;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #cbd5e1;
+      margin-bottom: 8px;
+      padding: 6px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.02);
+      display: none;
+    }
+    .input-row {
+      display: flex;
+      gap: 6px;
+    }
+    .chat-input {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      color: #fff;
+      padding: 8px 10px;
+      font-size: 12px;
+      outline: none;
+    }
+    .chat-input:focus {
+      border-color: #6366f1;
+    }
+    .send-btn {
+      background: linear-gradient(135deg, #6366f1, #00e5ff);
+      border: none;
+      color: #fff;
+      padding: 0 12px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .full-app-link {
+      display: block;
+      text-align: center;
+      font-size: 11px;
+      color: #818cf8;
+      text-decoration: none;
+      padding-top: 4px;
+    }
+    .full-app-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo-wrap">
+      <span class="logo-icon">🤖</span>
+      <span class="logo-title">سمير الذكي</span>
+    </div>
+    <div class="status-badge" id="status-badge">
+      <span class="status-dot"></span>
+      <span id="status-text">جاري الفحص...</span>
+    </div>
+  </div>
+
+  <div class="actions-grid">
+    <button class="action-btn" id="btn-translate-page">
+      <span>👁️</span>
+      <span>ترجم ما أمامي</span>
+    </button>
+    <button class="action-btn" id="btn-summarize-page">
+      <span>📝</span>
+      <span>لخص الصفحة</span>
+    </button>
+  </div>
+
+  <div class="chat-box">
+    <div class="response-area" id="response-area"></div>
+    <div class="input-row">
+      <input type="text" class="chat-input" id="chat-input" placeholder="اسأل سمير أو اطلب منه مهمة..." />
+      <button class="send-btn" id="send-btn">إرسال</button>
+    </div>
+  </div>
+
+  <a href="http://localhost:8000" target="_blank" class="full-app-link">🚀 فتح لوحة تحكم سمير الكاملة</a>
+
+  <script src="popup.js"></script>
+</body>
+</html>

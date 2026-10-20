@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+dist/
+build/
+.venv/
+*/.venv/
+__pycache__/
+*/__pycache__/
+*.pyc
+*.pyo
+
+# Environment & Secrets
+.env
+core_server/.env
+service-account.json
+
+# Database & Data
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+data/
+core_server/data/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Large binaries & packaging artifacts
+*.exe
+*.zip
+*.apk
+*.jar
+*.dll
+cloudflared.exe
+Samir_Clean_Distribution/
+SAMIR_COMPLETE_CODEBASE.md
+
+# Android build & local tools
+android_app/jdk17/
+android_app/android_sdk/
+android_app/android/.gradle/
+android_app/android/app/build/
+android_app/android/build/
+local.properties
+.gradle/
+
+# OS files
+.DS_Store
+Thumbs.db
+

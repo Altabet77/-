@@ -1,0 +1,13 @@
+{
+  "id": "63f193cd",
+  "name": "سفينة الفضاء Cyber Space",
+  "description": "لعبة إطلاق نار فضائية ممتعة بالكانفاس مع حركة سريعة ونقاط متصاعدة",
+  "type": "game",
+  "created_at": "2026-09-13T01:53:16.216471",
+  "updated_at": "2026-09-13T01:53:16.216471",
+  "files": [
+    "index.html",
+    "style.css",
+    "script.js"
+  ]
+}

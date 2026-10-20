@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>سمير — J.A.R.V.I.S</title>
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#020712" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="apple-touch-icon" href="/static/icons/icon-192.png" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body class="jarvis-body">
+  <!-- Subtle Ambient & Scanline Background Grid -->
+  <div class="hologram-grid"></div>
+  <div class="ambient-glow"></div>
+  <div class="scanlines"></div>
+
+  <!-- Top Command HUD Bar (Titlebar & Controls) -->
+  <header class="hud-topbar" id="hud-titlebar">
+    <div class="topbar-right titlebar-drag">
+      <div class="brand-pill">
+        <span class="hud-status-led" id="hud-status-led"></span>
+        <span class="brand-title">S.A.M.I.R</span>
+        <span class="brand-tag">J.A.R.V.I.S</span>
+      </div>
+      <!-- Quick Status Badge -->
+      <div class="quick-status-badge" id="quick-status-badge" title="حالة النظام">
+        <span class="badge-dot"></span>
+        <span class="badge-text" id="top-status-text">متصل // جاهز</span>
+      </div>
+    </div>
+
+    <div class="topbar-center">
+      <div class="active-engine-badge" id="active-engine-badge" title="محرك الذكاء الاصطناعي النشط">
+        <span class="engine-icon">⚡</span>
+        <span class="engine-name" id="top-engine-name">Gemini 3.5 Flash Lite</span>
+      </div>
+    </div>
+
+    <div class="topbar-left">
+      <!-- Hands-Free Wake Word Indicator & Button -->
+      <button class="topbar-btn wake-word-btn active" id="btn-wake-word" title="الاستماع التلقائي الدائم عند نداء 'سمير' (اضغط للتشغيل أو الإيقاف)">
+        <span class="wake-dot"></span>
+        <span class="btn-label">سمير 👂</span>
+      </button>
+
+      <!-- Mobile Phone Connect Button -->
+      <button class="topbar-btn mobile-connect-btn" id="btn-mobile-connect" title="تشغيل سمير على هاتفك الذكي (QR Code & WiFi)">
+        <span class="btn-icon">📱</span>
+        <span class="btn-label">الهاتف</span>
+      </button>
+
+      <!-- Action Buttons with Eye-Comfortable Styling -->
+      <button class="topbar-btn" id="btn-history" title="سجل المحادثات والعمليات">
+        <span class="btn-icon">📜</span>
+        <span class="btn-label">السجل</span>
+        <span class="btn-badge hidden" id="history-count-badge">0</span>
+      </button>
+
+      <button class="topbar-btn" id="btn-settings" title="الإعدادات والأصوات">
+        <span class="btn-icon">⚙️</span>
+        <span class="btn-label">الإعدادات</span>
+      </button>
+
+      <button class="topbar-btn" id="btn-toggle-sound" title="كتم / تفعيل الصوت">
+        <span class="btn-icon" id="sound-btn-icon">🔊</span>
+      </button>
+
+      <!-- Electron Frameless Window Buttons -->
+      <div class="win-controls" id="win-controls">
+        <button class="win-btn win-min" id="win-min" title="تصغير">🗕</button>
+        <button class="win-btn win-close" id="win-close" title="إغلاق">✕</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Hologram Viewport -->
+  <main class="hud-viewport">
+
+    <!-- Left HUD Side Panel (حالة النظام والمهام المباشرة) -->
+    <aside class="hud-side-panel hud-panel-left" id="hud-panel-left">
+      <!-- Section: System Telemetry -->
+      <div class="hud-widget">
+        <div class="widget-header">
+          <span class="widget-icon">⚡</span>
+          <span class="widget-title">حالة النظام</span>
+          <span class="widget-tag tag-active">نشط</span>
+        </div>
+        <div class="telemetry-grid">
+          <div class="telemetry-item">
+            <span class="telemetry-label">الطاقة والكفاءة</span>
+            <span class="telemetry-val val-gold">98%</span>
+          </div>
+          <div class="telemetry-item">
+            <span class="telemetry-label">زمن التشغيل</span>
+            <span class="telemetry-val val-cyan" id="hud-uptime-val">14:38:55</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section: Live Active Tasks -->
+      <div class="hud-widget">
+        <div class="widget-header">
+          <span class="widget-icon">🎯</span>
+          <span class="widget-title">المهام الحالية</span>
+          <span class="widget-sub">Live Status</span>
+        </div>
+        <div class="tasks-mini-list">
+          <div class="task-mini-item status-done">
+            <span class="task-check">✔</span>
+            <div class="task-info">
+              <span class="task-name">توليد التقرير المالي</span>
+              <span class="task-meta">Stripe & Analytics • نشط</span>
+            </div>
+            <div class="task-bar bar-cyan"></div>
+          </div>
+          <div class="task-mini-item status-live">
+            <span class="task-check">✔</span>
+            <div class="task-info">
+              <span class="task-name">مراجعة وتشغيل الكود</span>
+              <span class="task-meta">Terminal & Runner • جاهز</span>
+            </div>
+            <div class="task-bar bar-gold"></div>
+          </div>
+          <div class="task-mini-item status-queued">
+            <span class="task-check">◉</span>
+            <div class="task-info">
+              <span class="task-name">تنسيق المواعيد والإيميل</span>
+              <span class="task-meta">Gmail & Calendar • متزامن</span>
+            </div>
+            <div class="task-bar bar-blue"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section: User Profile -->
+      <div class="hud-widget user-widget">
+        <div class="widget-header">
+          <span class="widget-icon">👤</span>
+          <span class="widget-title">ملف المستخدم</span>
+          <span class="widget-tag">مصرح</span>
+        </div>
+        <div class="user-profile-badge">
+          <div class="user-avatar-hex">
+            <span>👨‍💻</span>
+          </div>
+          <div class="user-details">
+            <div class="user-name" id="hud-user-name">أحمد منصور</div>
+            <div class="user-role">التحكم الكامل • Root Admin</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Center Stage: The Connected Sub-Nodes Web + Central Reactor Orb -->
+    <div class="hud-center-stage">
+      
+      <!-- SVG Connecting Circuit Network Lines (Radiating from Core to Nodes) -->
+      <svg class="hud-circuit-svg" id="hud-circuit-svg" viewBox="0 0 800 520" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="goldCyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#ffb703" stop-opacity="0.9" />
+            <stop offset="50%" stop-color="#00e5ff" stop-opacity="0.8" />
+            <stop offset="100%" stop-color="#ffb703" stop-opacity="0.9" />
+          </linearGradient>
+          <filter id="hudGlow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="2.5" result="glow" />
+            <feMerge>
+              <feMergeNode in="glow" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        <!-- Lines connecting center (400, 260) to 8 nodes -->
+        <g class="circuit-lines" filter="url(#hudGlow)">
+          <line x1="400" y1="260" x2="400" y2="40" class="hud-line line-top" />
+          <line x1="400" y1="260" x2="680" y2="70" class="hud-line line-top-right" />
+          <line x1="400" y1="260" x2="740" y2="260" class="hud-line line-mid-right" />
+          <line x1="400" y1="260" x2="680" y2="450" class="hud-line line-bottom-right" />
+          <line x1="400" y1="260" x2="400" y2="490" class="hud-line line-bottom" />
+          <line x1="400" y1="260" x2="120" y2="450" class="hud-line line-bottom-left" />
+          <line x1="400" y1="260" x2="60" y2="260" class="hud-line line-mid-left" />
+          <line x1="400" y1="260" x2="120" y2="70" class="hud-line line-top-left" />
+
+          <!-- Hexagonal Core Geometry -->
+          <polygon points="400,170 478,215 478,305 400,350 322,305 322,215" class="hud-hex-ring" />
+          <polygon points="400,140 504,200 504,320 400,380 296,320 296,200" class="hud-hex-outer" />
+        </g>
+      </svg>
+
+      <!-- 8 Connected Holographic Sub-Nodes around Central Core -->
+      <div class="hud-nodes-constellation">
+        
+        <!-- Node 1: Top (مراقبة الأنظمة) -->
+        <div class="hud-subnode node-pos-top" data-prompt="افحص موارد النظام والعمليات الحالية في ويندوز" title="مراقبة موارد النظام والمعالج">
+          <div class="node-hex">
+            <span class="node-icon">🛰️</span>
+          </div>
+          <div class="node-label">
+            <span class="node-title">مراقبة الأنظمة</span>
+            <span class="node-sub">System Monitor</span>
+          </div>
+        </div>
+
+        <!-- Node 2: Top Right (الذكاء الاصطناعي) -->
+        <div class="hud-subnode node-pos-top-right" data-action="ai-engines" title="محركات الذكاء الاصطناعي (Gemini / Claude / Groq)">
+          <div class="node-hex">
+            <span class="node-icon">🧠</span>
+          </div>
+          <div class="node-label">
+            <span class="node-title">الذكاء الاصطناعي</span>
+            <span class="node-sub">AI Analysis</span>
+          </div>
+        </div>
+
+        <!-- Node 3: Mid Right (تحليل الشبكة) -->
+        <div class="hud-subnode node-pos-mid-right" data-prompt="ابحث في الإنترنت عن آخر الأخبار والتقنيات اليوم" title="المتصفح وأتمتة الويب Playwright">
+          <div class="node-hex">
+            <span class="node-icon">🌐</span>
+          </div>
+          <div class="node-label">
+            <span class="node-title">تحليل الشبكة</span>
+            <span class="node-sub">Network & Web</span>
+          </div>
+        </div>
+
+        <!-- Node 4: Bottom Right (المصادقة الأمنية) -->
+        <div class="hud-subnode node-pos-bottom-right" data-action="security-auth" title="الأمان وحماية الذاكرة">
+          <div class="node-hex">
+            <span class="node-icon">🔒</span>
+          </div>
+          <div class="node-label">
+            <span class="node-title">المصادقة الأمنية</span>
+            <span class="node-sub">Security Auth</span>
+          </div>
+        </div>
+
+        <!-- Node 5: Bottom (بروتوكول الاتصال) -->
+        <div class="hud-subnode node-pos-bottom" data-prompt="هل لدي أي إيميلات جديدة غير مقروءة في Gmail أو مواعيد اليوم؟" title="إيميل Gmail والتقويم والإشعارات">
+          <div class="node-hex">
+            <span class="node-icon">📡</span>
+          </div>
+          <div class="node-label">
+            <span class="node-title">بروتوكول الاتصال</span>
+            <span class="node-sub">Comm Protocol</span>
+          </div>
+        </div>
+
+        <!-- Node 6: Bottom Left (تكامل المستخدم) -->
+        <div class="hud-subnode node-pos-bottom-left" data-prompt="اقرأ محتوى الحافظة clipboard ولخصه لي" title="الحافظة والتحكم بنظام ويندوز">
+          <div class="node-hex">
+            <span class="node-icon">⚡</span>
+          </div>
+          <div class="node-label">
+            <span class="node-title">تكامل المستخدم</span>
+            <span class="node-sub">User Integration</span>
+          </div>
+        </div>
+
+        <!-- Node 7: Mid Left (معالجة البيانات) -->
+        <div class="hud-subnode node-pos-mid-left" data-prompt="اعرض إحصائيات الأعمال ومبيعات Stripe والتحليلات" title="قواعد البيانات والملفات والبحث">
+          <div class="node-hex">
+            <span class="node-icon">📊</span>
+          </div>
+          <div class="node-label">
+            <span class="node-title">معالجة البيانات</span>
+            <span class="node-sub">Data Processing</span>
+          </div>
+        </div>
+
+        <!-- Node 8: Top Left (الأتمتة والمهام) -->
+        <div class="hud-subnode node-pos-top-left" data-prompt="اعرض قائمة المهام المجدولة وحالتها" title="تشغيل الكود والأتمتة والمهام">
+          <div class="node-hex">
+            <span class="node-icon">🚀</span>
+          </div>
+          <div class="node-label">
+            <span class="node-title">الأتمتة والمهام</span>
+            <span class="node-sub">Automation Tasks</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Central J.A.R.V.I.S Speaking Orb (سمير - النواة المركزية) -->
+      <div class="orb-stage">
+        
+        <div class="core-brand-badge">
+          <span class="core-brand-pill">سمير — النواة المركزية</span>
+        </div>
+
+        <div class="orb-container" id="jarvis-orb" role="button" tabindex="0" title="اضغط للتحدث أو مقاطعة الصوت">
+          
+          <!-- Rotating Holographic Outer Rings -->
+          <div class="orb-ring ring-outer-1"></div>
+          <div class="orb-ring ring-outer-2"></div>
+          <div class="orb-ring ring-tech-ticks"></div>
+          <div class="orb-ring ring-segmented"></div>
+          <div class="orb-ring ring-gold-corona"></div>
+
+          <!-- Concentric Audio Wave Rings -->
+          <div class="wave-ripple ripple-1" id="ripple-1"></div>
+          <div class="wave-ripple ripple-2" id="ripple-2"></div>
+          <div class="wave-ripple ripple-3" id="ripple-3"></div>
+
+          <!-- Perimeter Circular Audio Visualizer Bars -->
+          <div class="circular-bars" id="circular-bars"></div>
+
+          <!-- Glowing Arc Reactor Core Sphere -->
+          <div class="arc-core" id="arc-core">
+            <div class="core-plasma"></div>
+            <div class="core-inner-glow"></div>
+            <div class="core-flare"></div>
+            <div class="core-gold-pulse"></div>
+            <div class="core-symbol">⚡</div>
+          </div>
+        </div>
+
+        <!-- State Holographic Readout below the Orb -->
+        <div class="orb-state-readout" id="orb-state-text">سمير // النواة المركزية جاهزة</div>
+        <div class="orb-hint" id="orb-hint">اضغط على النواة المركزية أو تحدث عبر الميكروفون بالأسفل</div>
+      </div>
+
+    </div>
+
+    <!-- Right HUD Side Panel (فحص النظام الرقمي وتحليل الإشارة) -->
+    <aside class="hud-side-panel hud-panel-right" id="hud-panel-right">
+      <!-- Section: Digital System Checks -->
+      <div class="hud-widget">
+        <div class="widget-header">
+          <span class="widget-icon">💻</span>
+          <span class="widget-title">فحص النظام الرقمي</span>
+          <span class="widget-tag tag-cyan">Telemetry</span>
+        </div>
+        <div class="meters-list">
+          <!-- Memory Meter -->
+          <div class="meter-item">
+            <div class="meter-info">
+              <span class="meter-label">الذاكرة (RAM):</span>
+              <span class="meter-val" id="meter-ram-val">42%</span>
+            </div>
+            <div class="meter-track">
+              <div class="meter-fill fill-cyan" id="meter-ram-fill" style="width: 42%;"></div>
+            </div>
+          </div>
+          <!-- CPU Meter -->
+          <div class="meter-item">
+            <div class="meter-info">
+              <span class="meter-label">المعالج (CPU):</span>
+              <span class="meter-val" id="meter-cpu-val">18%</span>
+            </div>
+            <div class="meter-track">
+              <div class="meter-fill fill-gold" id="meter-cpu-fill" style="width: 18%;"></div>
+            </div>
+          </div>
+          <!-- Storage Meter -->
+          <div class="meter-item">
+            <div class="meter-info">
+              <span class="meter-label">التخزين المحلي:</span>
+              <span class="meter-val" id="meter-storage-val">65%</span>
+            </div>
+            <div class="meter-track">
+              <div class="meter-fill fill-blue" id="meter-storage-fill" style="width: 65%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section: Dynamic Audio / Wave Visualizer -->
+      <div class="hud-widget">
+        <div class="widget-header">
+          <span class="widget-icon">📊</span>
+          <span class="widget-title">تحليل الإشارة والتشفير</span>
+          <span class="widget-sub">Live 60 FPS</span>
+        </div>
+        <div class="wave-canvas-box">
+          <canvas id="hud-wave-canvas" width="220" height="55"></canvas>
+        </div>
+      </div>
+
+      <!-- Section: Security & Threat Guard -->
+      <div class="hud-widget security-widget">
+        <div class="widget-header">
+          <span class="widget-icon">🛡️</span>
+          <span class="widget-title">التهديدات الأمنية</span>
+          <span class="widget-tag tag-secure">آمن ✓</span>
+        </div>
+        <div class="security-status-box">
+          <div class="shield-indicator">
+            <span class="shield-pulse"></span>
+            <span class="shield-text">تشفير محلي نشط • لا توجد ثغرات</span>
+          </div>
+          <div class="security-meta">قاعدة بيانات سمير مشفرة محلياً بالكامل</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Eye-Comfortable Dialogue Stream Dock (Anchored smoothly above bottom bar) -->
+    <section class="dialogue-dock" id="dialogue-dock">
+      <div class="dialogue-scroll-area" id="dialogue-scroll-area">
+        
+        <!-- User Question Bubble (Appears smoothly near bottom) -->
+        <div class="dialogue-bubble user-bubble hidden" id="user-dialogue-card">
+          <div class="bubble-header">
+            <span class="bubble-author">👤 أنت</span>
+            <span class="bubble-time" id="user-bubble-time">الآن</span>
+          </div>
+          <div class="bubble-content" id="user-speech-text">...</div>
+        </div>
+
+        <!-- Samir Assistant Bubble (Appears smoothly near bottom) -->
+        <div class="dialogue-bubble assistant-bubble hidden" id="assistant-dialogue-card">
+          <div class="bubble-header">
+            <div class="assistant-tag-group">
+              <span class="assistant-avatar">🤖</span>
+              <span class="bubble-author">سمير</span>
+              <span class="assistant-model-pill" id="assistant-tag-model">Gemini 3.5</span>
+            </div>
+            <div class="bubble-actions">
+              <span class="bubble-time" id="assistant-bubble-time">الآن</span>
+              <button class="bubble-mini-btn" id="btn-replay-speech" title="إعادة نطق الرد">🔊</button>
+            </div>
+          </div>
+          <div class="bubble-content" id="assistant-speech-text">...</div>
+          <div class="bubble-tools" id="assistant-card-tools"></div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Stable Bottom Questions & Commands Bar (ثابت بالأسفل دائماً بدون أي قفزات) -->
+  <footer class="hud-bottom-bar" id="hud-bottom-bar">
+    <!-- Attachments Preview Chips -->
+    <div class="bar-attachments-preview hidden" id="hud-attachments-preview"></div>
+
+    <div class="bar-container">
+      
+      <!-- Mic Trigger Button -->
+      <button class="bar-mic-btn" id="hud-mic-btn" title="تحدث مع سمير بالصوت">
+        <span class="mic-icon">🎙️</span>
+        <span class="mic-waves"></span>
+      </button>
+
+      <!-- Screen Vision Trigger (انظر لشاشتي وترجم) -->
+      <button class="bar-screen-btn" id="hud-screen-btn" title="انظر لما في شاشتي وترجمه واشرح ما فيها">
+        <span class="screen-icon">👁️</span>
+      </button>
+
+      <!-- File / Media Attach Button -->
+      <label class="bar-attach-btn" id="hud-attach-btn" title="إرفاق صور، أصوات، فيديو أو ملفات (أو الصق من الحافظة Ctrl+V)">
+        <input type="file" id="hud-file-input" multiple accept="image/*,video/*,audio/*,.pdf,.txt,.docx,.csv" style="display:none;" />
+        <span class="attach-icon">📎</span>
+      </label>
+
+      <!-- Main Text Input Field (بار الأسئلة المريح) -->
+      <div class="bar-input-box">
+        <input 
+          type="text" 
+          id="hud-text-input" 
+          class="bar-input-field" 
+          placeholder="اسأل سمير، أرسل رابط انستا، اطلب ترجمة الشاشة، أو الصق صورة..." 
+          autocomplete="off" 
+          spellcheck="false" 
+          dir="rtl"
+        />
+      </div>
+
+      <!-- AI Provider Selector Pill -->
+      <div class="bar-provider-wrapper">
+        <select id="hud-provider-select" class="bar-provider-select" title="اختر محرك الذكاء الاصطناعي">
+          <option value="auto">🧠 تلقائي (الأسرع)</option>
+          <option value="gemini">💎 Gemini 3.5 Flash</option>
+          <option value="groq">⚡ Groq (Llama 3)</option>
+          <option value="claude">🎭 Claude 3.5</option>
+          <option value="openai">🤖 OpenAI GPT</option>
+        </select>
+      </div>
+
+      <!-- Send Button -->
+      <button class="bar-send-btn" id="hud-send-btn" title="إرسال (Enter)">
+        <span class="send-arrow">➤</span>
+      </button>
+
+    </div>
+  </footer>
+
+  <!-- Eye-Comfortable Slide-in Conversations History Drawer (سجل المحادثات المنظم) -->
+  <div class="hud-drawer-overlay hidden" id="drawer-overlay">
+    <aside class="hud-drawer-panel" id="hud-drawer">
+      <div class="drawer-top">
+        <div class="drawer-header-title">
+          <span class="drawer-icon">📜</span>
+          <span>سجل المحادثات والجلسات</span>
+        </div>
+        <button class="drawer-close-btn" id="drawer-close-btn" title="إغلاق (Esc)">✕</button>
+      </div>
+
+      <div class="drawer-toolbar">
+        <button class="drawer-new-session-btn" id="drawer-new-btn">
+          <span>✦ بدء محادثة جديدة</span>
+        </button>
+        <div class="drawer-search-box">
+          <input type="text" id="drawer-search-input" placeholder="بحث في المحادثات..." dir="rtl" />
+        </div>
+      </div>
+
+      <!-- Conversations Cards List -->
+      <div class="drawer-items-list" id="drawer-conv-list">
+        <div class="drawer-loading-indicator">
+          <span class="spinner"></span>
+          <span>جاري جلب المحادثات...</span>
+        </div>
+      </div>
+
+      <div class="drawer-footer">
+        <div class="drawer-stats-note" id="drawer-stats-note">المحادثات مخزنة بأمان في قاعدة البيانات المحلية</div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Eye-Comfortable Settings Modal (لوحة الإعدادات المرتبة) -->
+  <div class="hud-modal-overlay hidden" id="settings-modal">
+    <div class="hud-modal-container">
+      <div class="modal-head">
+        <div class="modal-head-title">
+          <span class="modal-icon">⚙️</span>
+          <span>إعدادات وتفضيلات سمير (J.A.R.V.I.S)</span>
+        </div>
+        <button class="modal-close-btn" id="settings-close-btn" title="إغلاق (Esc)">✕</button>
+      </div>
+
+      <div class="modal-scroll-body">
+        
+        <!-- Section 1: Voice & Dialect -->
+        <div class="modal-section-card">
+          <div class="section-title">
+            <span class="sec-icon">🎙️</span>
+            <span>الصوت والنطق (ElevenLabs)</span>
+          </div>
+          <div class="section-desc">اختر صوت الشخصية ونبرة الحوار المفضلة لديك:</div>
+          
+          <div class="voice-cards-grid" id="voice-cards-grid">
+            <!-- Voice selection options rendered dynamically & comfortably -->
+          </div>
+
+          <div class="form-row">
+            <label for="setting-tts-rate">سرعة التحدث:</label>
+            <select id="setting-tts-rate" class="hud-select">
+              <option value="+0%">طبيعي (100%)</option>
+              <option value="+10%">سريع قليلاً (+10%)</option>
+              <option value="+20%">سريع وذكي (+20%)</option>
+              <option value="-10%">هادئ ومتأنٍ (-10%)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Section 2: AI Engine Preferences -->
+        <div class="modal-section-card">
+          <div class="section-title">
+            <span class="sec-icon">🧠</span>
+            <span>محركات الذكاء الاصطناعي الافتراضية</span>
+          </div>
+          <div class="form-row">
+            <label for="setting-default-provider">المحرك المفضل:</label>
+            <select id="setting-default-provider" class="hud-select">
+              <option value="gemini">Gemini 3.5 Flash Lite (فائق السرعة - ننصح به)</option>
+              <option value="groq">Groq Llama 3 (أعلى سرعة استجابة)</option>
+              <option value="claude">Anthropic Claude (كتابة وأكواد برمجية عميقة)</option>
+              <option value="openai">OpenAI GPT-4o (شامل)</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>حفظ سياق الذاكرة الدائمة:</label>
+            <label class="toggle-switch">
+              <input type="checkbox" id="setting-memory-toggle" checked />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Section 3: Audio & Interaction -->
+        <div class="modal-section-card">
+          <div class="section-title">
+            <span class="sec-icon">⚡</span>
+            <span>التفاعل والمقاطعة التلقائية</span>
+          </div>
+          <div class="form-row">
+            <label>المقاطعة الفورية (Barge-In عند التحدث):</label>
+            <label class="toggle-switch">
+              <input type="checkbox" id="setting-bargein-toggle" checked />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="form-row">
+            <label>مؤثرات بصرية صوتية (360° Visualizer):</label>
+            <label class="toggle-switch">
+              <input type="checkbox" id="setting-viz-toggle" checked />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-foot">
+        <button class="modal-btn-cancel" id="settings-cancel-btn">إلغاء</button>
+        <button class="modal-btn-save" id="settings-save-btn">حفظ التفضيلات ✓</button>
+      </div>
+    </div>
+  <!-- Mobile Phone QR & Connection Modal (تشغيل سمير على الهاتف) -->
+  <div class="hud-modal-overlay hidden" id="mobile-modal">
+    <div class="hud-modal-container mobile-modal-box">
+      <div class="modal-head">
+        <div class="modal-head-title">
+          <span class="modal-icon">📱</span>
+          <span>تشغيل سمير على هاتفك الذكي (Android & iPhone)</span>
+        </div>
+        <button class="modal-close-btn" id="mobile-close-btn" title="إغلاق (Esc)">✕</button>
+      </div>
+
+      <div class="modal-scroll-body">
+        <div class="mobile-intro-card">
+          <p class="mobile-intro-p">
+            تحدث مع سمير بالصوت وتحكّم بحاسوبك مباشرة من هاتفك على نفس شبكة الواي فاي (Wi-Fi)!
+          </p>
+        </div>
+
+        <!-- QR Code & Direct Link Box -->
+        <div class="qr-showcase-box">
+          <div class="qr-canvas-wrap">
+            <canvas id="mobile-qr-canvas" width="200" height="200"></canvas>
+            <div class="qr-scan-badge">امسح بكاميرا الهاتف 📷</div>
+          </div>
+
+          <div class="mobile-url-box">
+            <span class="mobile-url-label">الرابط المباشر في متصفح هاتفك:</span>
+            <div class="mobile-url-field-wrap">
+              <input type="text" id="mobile-url-input" readonly value="جاري جلب العنوان..." class="mobile-url-input" />
+              <button class="copy-url-btn" id="btn-copy-mobile-url" title="نسخ الرابط">📋 نسخ</button>
+            </div>
+            <a id="mobile-open-link" href="#" target="_blank" class="mobile-test-link">🔗 تجربة فتح الرابط في نافذة جديدة</a>
+          </div>
+        </div>
+
+        <!-- Mobile Step-by-Step Instructions -->
+        <div class="mobile-instructions-grid">
+          <div class="inst-step-card">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <strong>الاتصال بنفس الشبكة:</strong>
+              <span>تأكد أن الهاتف متصل بنفس شبكة الواي فاي (Wi-Fi) أو نقطة اتصال الحاسوب.</span>
+            </div>
+          </div>
+
+          <div class="inst-step-card">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <strong>امسح الباركود بالكاميرا:</strong>
+              <span>افتح كاميرا الهاتف واقرأ الباركود، أو اكتب الرابط أعلاه في متصفح Chrome أو Safari.</span>
+            </div>
+          </div>
+
+          <div class="inst-step-card">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <strong>تثبيت كتطبيق فوري (PWA):</strong>
+              <span>اضغط خيارات المتصفح (⋮) ثم اختر <em>"إضافة إلى الشاشة الرئيسية (Install App)"</em> ليتحول لتطبيق هاتف دائم وكامل الشاشة!</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-foot">
+        <button class="modal-btn-save" id="mobile-done-btn">تم فهم التعليمات ✓</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Toast Notification -->
+  <div class="hud-toast hidden" id="hud-toast"></div>
+
+  <!-- Scripts -->
+  <script src="/static/app.js"></script>
+</body>
+</html>

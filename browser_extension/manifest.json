@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "سمير الذكي | Samir AI Companion",
+  "version": "1.1.0",
+  "description": "إضافة سمير لمراقبة الحالة في الخلفية، ترجمة ما تشاهده في المتصفح، وتنفيذ المهام والكتابة الذكية.",
+  "icons": {
+    "16":  "icon16.png",
+    "48":  "icon48.png",
+    "128": "icon128.png"
+  },
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting",
+    "alarms"
+  ],
+  "host_permissions": [
+    "http://localhost:8000/*",
+    "http://127.0.0.1:8000/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "سمير الذكي — في الخلفية",
+    "default_icon": {
+      "16":  "icon16.png",
+      "48":  "icon48.png",
+      "128": "icon128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

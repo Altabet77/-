@@ -1,0 +1,35 @@
+{
+  "name": "zackclaw",
+  "version": "1.0.0",
+  "description": "ZackClaw - Personal Autonomous AI Agent running locally with Groq & Gemini",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "ai-agent",
+    "groq",
+    "gemini",
+    "sqlite",
+    "local-agent"
+  ],
+  "author": "Zack",
+  "license": "MIT",
+  "dependencies": {
+    "@google/generative-ai": "^0.24.0",
+    "better-sqlite3": "^11.8.1",
+    "dotenv": "^16.4.7",
+    "groq-sdk": "^0.15.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.13.4",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3"
+  }
+}

@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: samir-ai-hub
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: frankfurt
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: DEFAULT_AI_PROVIDER
+        value: gemini
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+    disk:
+      name: samir-data
+      mountPath: /app/data
+      sizeGB: 1

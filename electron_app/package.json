@@ -1,0 +1,35 @@
+{
+  "name": "samir-desktop",
+  "version": "2.0.0",
+  "description": "سمير — المساعد الذكي الشخصي | JARVIS-Style Desktop App",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win --x64",
+    "dev": "electron . --dev"
+  },
+  "keywords": [
+    "samir",
+    "ai",
+    "jarvis",
+    "assistant"
+  ],
+  "author": "Samir AI",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^44.5.1",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.samir.desktop",
+    "productName": "سمير",
+    "win": {
+      "icon": "../samir.ico",
+      "target": "portable"
+    },
+    "files": [
+      "**/*",
+      "!node_modules/**"
+    ]
+  }
+}

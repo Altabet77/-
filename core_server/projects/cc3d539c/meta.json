@@ -1,0 +1,13 @@
+{
+  "id": "cc3d539c",
+  "name": "SonicRunner",
+  "description": "لعبة سونك بسيطة على الويب بنمط runner 2D، تحكم بالمفاتيح (سهم اليمين للقفز واليسار للسرعة).",
+  "type": "game",
+  "created_at": "2026-09-18T15:04:54.103982",
+  "updated_at": "2026-09-18T15:04:54.103982",
+  "files": [
+    "index.html",
+    "style.css",
+    "script.js"
+  ]
+}

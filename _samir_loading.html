@@ -1,0 +1,47 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>سمير — جاري التشغيل</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#fff;font-family:'Segoe UI',sans-serif;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;overflow:hidden}
+.logo{font-size:80px;margin-bottom:28px;animation:pulse 1.6s ease-in-out infinite}
+h1{font-size:2.4rem;font-weight:800;letter-spacing:2px;
+  background:linear-gradient(135deg,#6c63ff 0%,#00d4ff 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:10px}
+p{color:#666;font-size:1.05rem;margin-bottom:44px}
+.bar-wrap{width:260px;height:4px;background:#1a1a2e;border-radius:2px;overflow:hidden;margin-bottom:32px}
+.bar{height:100%;background:linear-gradient(90deg,#6c63ff,#00d4ff);border-radius:2px;
+  animation:fill 2s ease-in-out infinite}
+.dots{display:flex;gap:12px}
+.dot{width:13px;height:13px;border-radius:50%;animation:bounce .9s ease-in-out infinite}
+.dot:nth-child(1){background:#6c63ff}
+.dot:nth-child(2){background:#00d4ff;animation-delay:.18s}
+.dot:nth-child(3){background:#a855f7;animation-delay:.36s}
+@keyframes pulse{0%,100%{transform:scale(1);filter:drop-shadow(0 0 0px #6c63ff)}
+  50%{transform:scale(1.1);filter:drop-shadow(0 0 18px #6c63ff)}}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-15px)}}
+@keyframes fill{0%{width:0%}70%{width:85%}100%{width:100%}}
+</style>
+<script>
+(function ping(){
+  fetch('http://localhost:8000/health')
+    .then(function(r){ if(r.ok){ window.location.href='http://localhost:8000/'; } else { setTimeout(ping,700); } })
+    .catch(function(){ setTimeout(ping,700); });
+})();
+</script>
+</head>
+<body>
+  <div class="logo">🤖</div>
+  <h1>سمير</h1>
+  <p>جاري تشغيل المساعد الذكي...</p>
+  <div class="bar-wrap"><div class="bar"></div></div>
+  <div class="dots">
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+  </div>
+</body>
+</html>

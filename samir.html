@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="سمير — المساعد الشخصي الذكي المتطور. تحكم بكمبيوترك، تحدث بصوتك، ونفّذ مهامك بأمان." />
+  <title>سمير | المساعد الذكي الشخصي</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="core_server/web_console/style.css" />
+</head>
+<body>
+
+<!-- ═══════════════════════════════════ SERVER HINT BANNER ═══════════════════════════════════ -->
+<div id="server-hint-bar" style="background: linear-gradient(90deg, #10192e, #1a2744); border-bottom: 1px solid rgba(0,220,255,0.25); color: #94a3b8; font-size: 13px; padding: 8px 24px; display: flex; align-items: center; justify-content: space-between; z-index: 101; position: relative;">
+  <div style="display: flex; align-items: center; gap: 10px;">
+    <span style="font-size: 16px;">💡</span>
+    <span>لتفعيل الذكاء الاصطناعي والاستجابة الصوتية، تأكد من تشغيل <strong>start_samir.bat</strong> داخل مجلد سمير.</span>
+  </div>
+  <div style="display: flex; gap: 12px; align-items: center;">
+    <span style="color: #00dcff; font-family: monospace; font-size: 12px;">http://localhost:8000</span>
+    <button onclick="document.getElementById('server-hint-bar').style.display='none'" style="color: #94a3b8; cursor: pointer; font-size: 14px; background: none; border: none;">✕</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ AMBIENT BG ═══════════════════════════════════ -->
+<div class="ambient" aria-hidden="true">
+  <div class="amb-blob amb-1"></div>
+  <div class="amb-blob amb-2"></div>
+  <div class="amb-blob amb-3"></div>
+  <canvas id="particles-canvas"></canvas>
+  <div class="grid-lines"></div>
+</div>
+
+<!-- ═══════════════════════════════════ NAVBAR ═══════════════════════════════════ -->
+<header class="navbar" id="navbar">
+  <div class="nav-inner">
+    <div class="nav-logo">
+      <div class="nav-logo-dot"></div>
+      <span class="nav-logo-text">SAMIR</span>
+      <span class="nav-logo-badge">v1.1</span>
+    </div>
+
+    <nav class="nav-links">
+      <a href="#hero" class="nav-link active">الرئيسية</a>
+      <a href="#assistant" class="nav-link">المساعد</a>
+      <a href="#modes-section" class="nav-link">الأوضاع</a>
+      <a href="#tasks-section" class="nav-link">المهام</a>
+      <a href="#logs-section" class="nav-link">النشاط</a>
+      <a href="#memory-section" class="nav-link">الذاكرة</a>
+      <a href="#devices-section" class="nav-link">الأجهزة</a>
+    </nav>
+
+    <div class="nav-status" id="nav-status">
+      <div class="status-led" id="status-led"></div>
+      <span id="status-text">جاري الاتصال بالسيرفر...</span>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════ HERO ═══════════════════════════════════ -->
+<section class="hero" id="hero">
+  <div class="hero-content">
+    <div class="hero-eyebrow">
+      <div class="eyebrow-dot"></div>
+      <span>المساعد الشخصي الذكي من الجيل القادم</span>
+    </div>
+
+    <h1 class="hero-title">
+      مرحباً بك في عالم<br />
+      <span class="hero-gradient-text">سمير</span>
+    </h1>
+
+    <p class="hero-desc">
+      مساعد شخصي ذكي يفهمك بصوتك، يبحث في الإنترنت، يدير مهامك، وينفذ الأوامر<br />
+      على كمبيوترك وهاتفك بأمان تام وتأكيد فوري للعمليات الحساسة.
+    </p>
+
+    <div class="hero-cta-group">
+      <a href="#assistant" class="cta-primary" id="start-btn">
+        <span>ابدأ التحدث مع سمير</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+      <a href="#modes-section" class="cta-secondary">استكشف الأوضاع الذكية</a>
+    </div>
+
+    <div class="hero-stats">
+      <div class="stat-item">
+        <div class="stat-val">&lt; 300ms</div>
+        <div class="stat-label">سرعة الاستجابة</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <div class="stat-val">Agentic Loop</div>
+        <div class="stat-label">حلقة التفكير والقرارات</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <div class="stat-val">100% آمن</div>
+        <div class="stat-label">تأكيد الأوامر الحساسة</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-visual">
+    <!-- Central Holographic Orb -->
+    <div class="hero-orb-wrap">
+      <div class="h-ring r4"></div>
+      <div class="h-ring r3"></div>
+      <div class="h-ring r2"></div>
+      <div class="h-ring r1"></div>
+      <div class="hero-orb" id="hero-orb">
+        <div class="hero-orb-inner"></div>
+        <div class="hero-orb-shine"></div>
+      </div>
+    </div>
+
+    <!-- Floating info cards -->
+    <div class="float-card fc-top">
+      <div class="fc-dot green"></div>
+      <span>سمير متصل ويعمل</span>
+    </div>
+    <div class="float-card fc-right">
+      <div class="fc-dot cyan"></div>
+      <span>بحث الويب وإدارة المهام جاهزة</span>
+    </div>
+    <div class="float-card fc-bottom">
+      <div class="fc-dot purple"></div>
+      <span>نظام الأمان والتأكيد نشط</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ ASSISTANT CONSOLE ═══════════════════════════════════ -->
+<section class="assistant-section" id="assistant">
+  <div class="section-header">
+    <div class="section-eyebrow">الواجهة التفاعلية</div>
+    <h2 class="section-title">تحدث مع سمير الآن</h2>
+    <p class="section-desc">محادثة صوتية ونصية مباشرة مع حلقة تنفيذ ذكية للأدوات.</p>
+  </div>
+
+  <!-- Confirmation Banner / Notification Area -->
+  <div id="confirmation-banner-container" class="confirmation-banner-container hidden"></div>
+
+  <div class="console-layout">
+    <!-- Left: Voice Panel -->
+    <div class="console-voice-panel glass-panel">
+      <!-- Orb -->
+      <div class="orb-wrap">
+        <div class="orb-ring or3"></div>
+        <div class="orb-ring or2"></div>
+        <div class="orb-ring or1"></div>
+        <div class="voice-orb" id="voice-orb">
+          <div class="orb-glow"></div>
+        </div>
+      </div>
+
+      <!-- State -->
+      <div class="voice-state">
+        <p class="vs-main" id="state-label">جاهز للاستماع</p>
+        <p class="vs-sub" id="live-subtitle">اضغط على الكرة أو زر المايكروفون للتحدث</p>
+      </div>
+
+      <!-- Visualizer -->
+      <div class="vis-bars" id="vis-bars">
+        <span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span>
+      </div>
+
+      <!-- Hands-Free Wake Word Bar -->
+      <div class="handsfree-status-badge" id="handsfree-badge">
+        <span class="hf-dot"></span>
+        <span id="hf-text">الاستماع التلقائي: قل <strong>"سمير"</strong> وسيرد فوراً</span>
+      </div>
+
+      <!-- Controls -->
+      <div class="voice-ctl-row">
+        <button class="vc-btn vc-handsfree active" id="handsfree-toggle-btn" title="تفعيل/تعطيل الاستماع التلقائي عند قول 'سمير'">
+          <span>👂</span>
+        </button>
+
+        <button class="vc-btn vc-mic" id="mic-btn" title="تحدث مع سمير">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+            <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+          </svg>
+        </button>
+
+        <button class="vc-btn vc-stop hidden" id="interrupt-btn" title="مقاطعة الرد الصوتي">
+          <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+        </button>
+      </div>
+
+      <div class="vc-hint" id="vc-hint">الاستماع شغال — فقط نادِ "سمير" أو اضغط للتحدث</div>
+
+      <!-- Quick chips -->
+      <div class="chips-wrap">
+        <button class="chip" data-cmd="شن الجو يا سمير؟">👋 شن الجو؟</button>
+        <button class="chip" data-cmd="صوّر الشاشة وقلي شن شايف">📸 صوّر شاشتي</button>
+        <button class="chip" data-cmd="ارسم لي صورة رائد فضاء في الصحراء">🎨 ارسم صورة</button>
+        <button class="chip" data-cmd="ابحث في الإنترنت عن آخر أخبار الذكاء الاصطناعي اليوم">🌐 بحث الويب</button>
+        <button class="chip" data-cmd="سجل لي مهمة جديدة: تجهيز سكريبت الفيديو غداً الساعة 6 مساءً">📝 إضافة مهمة</button>
+        <button class="chip" data-cmd="فعّل وضع صانع المحتوى">🎬 وضع المحتوى</button>
+      </div>
+    </div>
+
+    <!-- Right: Chat Feed -->
+    <div class="console-chat-panel glass-panel">
+      <div class="chat-header">
+        <div class="chat-header-dot pulse-green"></div>
+        <span>سجل المحادثة والتنفيذ</span>
+        <span class="chat-model-badge" id="chat-model-badge">Groq / Qwen</span>
+      </div>
+
+      <div class="chat-feed" id="chat-feed">
+        <div class="msg msg-assistant">
+          <div class="msg-avatar">س</div>
+          <div class="msg-body">
+            <div class="msg-name">سمير</div>
+            <div class="msg-text">أهلاً يا بطل! أنا سمير معك، تقدر تناديني بالصوت مباشرة وتقول <strong>«سمير»</strong> وسأرد عليك فوراً، أو تكتب وترسل صور وملفات وأنا جاهز!</div>
+            <div class="msg-time">الآن</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- File Preview Strip -->
+      <div id="file-preview-strip" class="file-preview-strip hidden">
+        <div id="file-preview-content"></div>
+        <button id="file-remove-btn" class="file-remove-btn">✕</button>
+      </div>
+
+      <!-- Text Input -->
+      <div class="chat-input-row">
+        <input type="file" id="file-upload-input" accept="image/*,.pdf,.txt" class="hidden" />
+        <button id="attach-file-btn" class="chat-attach-btn" title="إرفاق صورة أو مستند">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
+          </svg>
+        </button>
+        <input type="text" id="text-input" class="chat-input" placeholder="اكتب رسالتك أو نادِ 'سمير' بصوتك..." autocomplete="off" />
+        <button id="send-text-btn" class="chat-send-btn" title="إرسال">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z"/>
+          </svg>
+        </button>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ MODES SECTION ═══════════════════════════════════ -->
+<section class="modes-section-outer" id="modes-section">
+  <div class="section-header">
+    <div class="section-eyebrow">بيئات العمل الآلية</div>
+    <h2 class="section-title">الأوضاع الذكية (Assistant Modes)</h2>
+    <p class="section-desc">جهّز بيئة جهازك بضغطة زر أو أمر صوتي — يشغل البرامج، يفتح المواقع، ويضبط الإعدادات تلقائياً.</p>
+  </div>
+
+  <div class="modes-grid" id="modes-grid">
+    <div class="mode-card glass-panel" data-mode="creator">
+      <div class="mode-icon-wrap cyan">🎬</div>
+      <div class="mode-info">
+        <div class="mode-title-row">
+          <h3 class="mode-name">وضع صانع المحتوى</h3>
+          <span class="mode-badge">Creator Mode</span>
+        </div>
+        <p class="mode-desc">يجهز بيئة العمل لإنتاج المحتوى: OBS، برنامج المونتاج، مجلد المشاريع، واستوديو يوتيوب.</p>
+        <div class="mode-steps-preview">
+          <span>OBS Studio</span>
+          <span>DaVinci Resolve</span>
+          <span>YouTube Studio</span>
+          <span>Discord</span>
+        </div>
+      </div>
+      <button class="btn-activate-mode" data-mode="creator">
+        <span>تفعيل الآن</span>
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+    </div>
+
+    <div class="mode-card glass-panel" data-mode="gaming">
+      <div class="mode-icon-wrap purple">🎮</div>
+      <div class="mode-info">
+        <div class="mode-title-row">
+          <h3 class="mode-name">وضع الألعاب</h3>
+          <span class="mode-badge">Gaming Mode</span>
+        </div>
+        <p class="mode-desc">يجهز بيئة الألعاب: فتح Discord للتواصل الصوتي، تجهيز OBS للتسجيل أو البث، وإسكات البرامج الثقيلة.</p>
+        <div class="mode-steps-preview">
+          <span>Discord</span>
+          <span>OBS Studio</span>
+        </div>
+      </div>
+      <button class="btn-activate-mode" data-mode="gaming">
+        <span>تفعيل الآن</span>
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+    </div>
+
+    <div class="mode-card glass-panel" data-mode="work">
+      <div class="mode-icon-wrap green">💼</div>
+      <div class="mode-info">
+        <div class="mode-title-row">
+          <h3 class="mode-name">وضع العمل والإنتاجية</h3>
+          <span class="mode-badge">Work Mode</span>
+        </div>
+        <p class="mode-desc">بيئة خالية من التشتيت للتركيز: متصفح العمل، البريد الإلكتروني، وبيئة التطوير VS Code.</p>
+        <div class="mode-steps-preview">
+          <span>Brave Browser</span>
+          <span>Gmail</span>
+          <span>VS Code</span>
+        </div>
+      </div>
+      <button class="btn-activate-mode" data-mode="work">
+        <span>تفعيل الآن</span>
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+    </div>
+
+    <div class="mode-card glass-panel" data-mode="night">
+      <div class="mode-icon-wrap orange">🌙</div>
+      <div class="mode-info">
+        <div class="mode-title-row">
+          <h3 class="mode-name">وضع الليل والهدوء</h3>
+          <span class="mode-badge">Night Mode</span>
+        </div>
+        <p class="mode-desc">خفض مستوى الصوت إلى 20%، إيقاف الإشعارات العالية، وتهيئة المساعد للردود الهادئة والموجزة.</p>
+        <div class="mode-steps-preview">
+          <span>خفض الصوت 20%</span>
+          <span>إسكات التنبيهات</span>
+        </div>
+      </div>
+      <button class="btn-activate-mode" data-mode="night">
+        <span>تفعيل الآن</span>
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ TASKS SECTION ═══════════════════════════════════ -->
+<section class="tasks-section-outer" id="tasks-section">
+  <div class="section-header">
+    <div class="section-eyebrow">إدارة الوقت والمواعيد</div>
+    <h2 class="section-title">المهام والتذكيرات (Tasks &amp; Reminders)</h2>
+    <p class="section-desc">أدر مهامك اليومية أو اطلب من سمير صوتياً إضافتها ومتابعتها.</p>
+  </div>
+
+  <div class="tasks-outer-layout glass-panel">
+    <!-- Tasks Top Bar -->
+    <div class="tasks-toolbar">
+      <div class="tasks-filter-tabs">
+        <button class="task-tab active" data-filter="all">الكل (<span id="task-count-all">0</span>)</button>
+        <button class="task-tab" data-filter="pending">قيد الانتظار (<span id="task-count-pending">0</span>)</button>
+        <button class="task-tab" data-filter="done">المكتملة (<span id="task-count-done">0</span>)</button>
+      </div>
+
+      <button class="btn-refresh-tasks" id="refresh-tasks-btn" title="تحديث قائمة المهام">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+        <span>تحديث</span>
+      </button>
+    </div>
+
+    <!-- Quick Add Task Form -->
+    <div class="tasks-add-form">
+      <input type="text" id="task-title-input" placeholder="عنوان المهمة (مثال: رفع الفيديو الجديد على يوتيوب)..." />
+      <input type="datetime-local" id="task-due-input" title="موعد المهمة / التذكير" />
+      <select id="task-prio-select">
+        <option value="normal">أولوية عادية</option>
+        <option value="high">أولوية عالية 🔥</option>
+        <option value="urgent">عاجل جداً ⚡</option>
+        <option value="low">منخفضة</option>
+      </select>
+      <button id="add-task-btn" class="btn-primary">
+        <span>+ إضافة مهمة</span>
+      </button>
+    </div>
+
+    <!-- Task List Grid -->
+    <div class="tasks-grid" id="tasks-grid">
+      <div class="task-empty">جاري تحميل المهام...</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ ACTIVITY LOGS SECTION ═══════════════════════════════════ -->
+<section class="logs-section-outer" id="logs-section">
+  <div class="section-header">
+    <div class="section-eyebrow">الشفافية والأمان</div>
+    <h2 class="section-title">سجل العمليات والنشاط (Activity Audit)</h2>
+    <p class="section-desc">سجل زمني دقيق لكل أداة نفذها سمير، وحالة الأوامر وقرارات التأكيد.</p>
+  </div>
+
+  <div class="logs-outer-layout glass-panel">
+    <div class="logs-toolbar">
+      <div class="logs-title-info">
+        <span class="logs-dot pulse-blue"></span>
+        <span>العمليات المسجلة حديثاً</span>
+      </div>
+      <div class="logs-actions">
+        <button id="refresh-logs-btn" class="btn-action-small">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+          <span>تحديث</span>
+        </button>
+        <button id="clear-logs-btn" class="btn-action-small btn-danger">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+          <span>مسح السجل</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="logs-feed" id="logs-feed">
+      <div class="log-empty">لا توجد عمليات مسجلة بعد.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ FEATURES ═══════════════════════════════════ -->
+<section class="features-section" id="features">
+  <div class="section-header">
+    <div class="section-eyebrow">لماذا سمير؟</div>
+    <h2 class="section-title">قدرات حقيقية، ليست مجرد محادثة</h2>
+  </div>
+
+  <div class="features-grid">
+    <div class="feat-card feat-large">
+      <div class="feat-icon-wrap cyan">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+      </div>
+      <h3>حلقة تنفيذ ذكية (Agentic Loop)</h3>
+      <p>سمير لا يكتفي بإجابة واحدة؛ بل يقرر الأداة المطلوبة، ينفذها، يقرأ النتيجة، ثم يصيغ لك رداً طبيعياً ومكتملاً بالصوت أو النص.</p>
+      <div class="feat-tag">Autonomous Multi-Step Execution</div>
+    </div>
+
+    <div class="feat-card">
+      <div class="feat-icon-wrap purple">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+      </div>
+      <h3>أمان صارم وتأكيد فوري</h3>
+      <p>أي أمر قد يؤثر على النظام أو البيانات الحساسة (كإيقاف التشغيل أو الحذف) يتوقف فوراً ويطلب تأكيدك قبل التنفيذ.</p>
+      <div class="feat-tag">LOW · MEDIUM · HIGH RISK</div>
+    </div>
+
+    <div class="feat-card">
+      <div class="feat-icon-wrap green">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
+      </div>
+      <h3>بحث حي في الإنترنت</h3>
+      <p>يجلب أحدث المعلومات والأخبار والنتائج فورياً دون الحاجة لمفاتيح مدفوعة عبر محرك بحث سريع وآمن.</p>
+      <div class="feat-tag">DuckDuckGo Web Intelligence</div>
+    </div>
+
+    <div class="feat-card">
+      <div class="feat-icon-wrap orange">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-5 11H4v-2h11v2zm3-4H4V9h14v2z"/></svg>
+      </div>
+      <h3>إدارة المهام والأوضاع</h3>
+      <p>تنظيم المهام والمواعيد والتذكيرات، بالإضافة لتفعيل بيئات عمل كاملة مثل وضع صانع المحتوى أو الألعاب.</p>
+      <div class="feat-tag">Tasks &amp; Contextual Modes</div>
+    </div>
+
+    <div class="feat-card">
+      <div class="feat-icon-wrap blue">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+      </div>
+      <h3>متعدد الأجهزة والأنظمة</h3>
+      <p>مبني معمارياً ليربط كمبيوتر Windows، هاتف Android، ولوحة الويب مع نفس العقل المركزي.</p>
+      <div class="feat-tag">Android · Windows · Web</div>
+    </div>
+
+    <div class="feat-card feat-large feat-ai">
+      <div class="feat-icon-wrap gradient">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2zm0 3a3 3 0 110 6 3 3 0 010-6zm0 14.2a7.2 7.2 0 01-6-3.22c.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08a7.2 7.2 0 01-6 3.22z"/></svg>
+      </div>
+      <h3>ذكاء اصطناعي مرن بالكامل</h3>
+      <p>يدعم Groq (Qwen 3.6B)، Google Gemini 2.0 Flash، وOpenAI نماذج محلية مع إمكانية التبديل الفوري.</p>
+      <div class="ai-providers-row">
+        <span class="ai-badge">Qwen 3.6B</span>
+        <span class="ai-badge">Gemini 2.0</span>
+        <span class="ai-badge">GPT-4o</span>
+        <span class="ai-badge">Ollama</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ MEMORY SECTION ═══════════════════════════════════ -->
+<section class="memory-section-outer" id="memory-section">
+  <div class="section-header">
+    <div class="section-eyebrow">الذاكرة الدائمة</div>
+    <h2 class="section-title">كل ما يعرفه سمير عنك</h2>
+    <p class="section-desc">إدارة كاملة للمعلومات المحفوظة — شاهد، عدّل، أو احذف في أي وقت.</p>
+  </div>
+
+  <div class="memory-outer-layout glass-panel">
+    <div class="memory-grid" id="memory-grid">
+      <div class="mem-empty">لم يتم حفظ معلومات بعد. اطلب من سمير "تذكر أن..." لحفظ أي معلومة!</div>
+    </div>
+
+    <div class="memory-add-form">
+      <h3>إضافة معلومة يدوياً</h3>
+      <div class="mem-form-row">
+        <input type="text" id="mem-key-input" placeholder="العنوان (مثال: مشروعي المفضل)" />
+        <input type="text" id="mem-val-input" placeholder="التفاصيل (مثال: Knight Quest)" />
+        <select id="mem-cat-select">
+          <option value="general">عام</option>
+          <option value="project">مشروع</option>
+          <option value="user_preference">تفضيل شخصي</option>
+          <option value="personal">شخصي</option>
+        </select>
+        <button id="add-mem-btn" class="btn-primary">حفظ</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ DEVICES ═══════════════════════════════════ -->
+<section class="devices-section-outer" id="devices-section">
+  <div class="section-header">
+    <div class="section-eyebrow">الأجهزة المتصلة</div>
+    <h2 class="section-title">شبكة سمير الشخصية</h2>
+  </div>
+
+  <div class="devices-grid-outer">
+    <div class="device-card-v2" id="dev-pc">
+      <div class="dev-header">
+        <div class="dev-icon">🖥️</div>
+        <div class="dev-badge dev-ready">Phase 2</div>
+      </div>
+      <div class="dev-name">Windows PC Agent</div>
+      <div class="dev-meta">وكيل التحكم بالنظام — متصل بالسيرفر وينفذ الأوامر المحلية</div>
+      <div class="dev-spec-row">
+        <span>تشغيل البرامج</span>
+        <span>التحكم بالصوت</span>
+        <span>إدارة الطاقة</span>
+      </div>
+    </div>
+
+    <div class="device-card-v2 active-device">
+      <div class="dev-header">
+        <div class="dev-icon">🌐</div>
+        <div class="dev-badge dev-online">متصل الآن</div>
+      </div>
+      <div class="dev-name">Web Console</div>
+      <div class="dev-meta">لوحة التحكم التفاعلية — متصلة بالسيرفر عبر WebSocket فوري</div>
+      <div class="dev-spec-row">
+        <span>محادثة صوتية</span>
+        <span>إدارة المهام والأوضاع</span>
+        <span>سجل الشفافية</span>
+      </div>
+    </div>
+
+    <div class="device-card-v2" id="dev-android">
+      <div class="dev-header">
+        <div class="dev-icon">📱</div>
+        <div class="dev-badge dev-ready">Phase 4</div>
+      </div>
+      <div class="dev-name">Android Client</div>
+      <div class="dev-meta">تطبيق الهاتف — تواصل صوتي وتحكم عن بعد في الأجهزة</div>
+      <div class="dev-spec-row">
+        <span>تحكم عن بعد</span>
+        <span>Wake Word</span>
+        <span>إشعارات فورية</span>
+      </div>
+    </div>
+
+    <div class="device-card-v2 device-add">
+      <div class="dev-icon add-icon">＋</div>
+      <div class="dev-name">أضف جهازاً</div>
+      <div class="dev-meta">Raspberry Pi، تلفاز ذكي، وسيرفرات إضافية</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ SETTINGS MODAL ═══════════════════════════════════ -->
+<div class="settings-modal hidden" id="settings-modal">
+  <div class="modal-backdrop" id="modal-backdrop"></div>
+  <div class="modal-box glass-panel">
+    <div class="modal-header">
+      <h3>إعدادات سمير</h3>
+      <button class="modal-close" id="modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="setting-group">
+        <label>مزود الذكاء الاصطناعي</label>
+        <select id="provider-select" class="setting-select">
+          <option value="groq" selected>Groq — Qwen 3.6B (فائق السرعة)</option>
+          <option value="gemini">Google Gemini 2.0 Flash</option>
+          <option value="openai">OpenAI / Qwen Custom</option>
+        </select>
+      </div>
+      <div class="setting-group">
+        <label>صوت المساعد</label>
+        <select id="voice-select" class="setting-select">
+          <option value="ar-EG-ShakirNeural" selected>شاكر — طبيعي وواضح (مصري)</option>
+          <option value="ar-SA-HamedNeural">حامد — هادئ ووقور (سعودي)</option>
+          <option value="ar-AE-HamdanNeural">حمدان — شبابي وسريع (إماراتي)</option>
+          <option value="ar-EG-SalmaNeural">سلمى — صوت أنثوي طبيعي</option>
+        </select>
+      </div>
+      <div class="setting-group">
+        <label>جلسة المحادثة</label>
+        <div class="setting-info">المعرف: <code id="session-id-display"></code></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ FOOTER ═══════════════════════════════════ -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <span class="footer-logo">SAMIR</span>
+      <span class="footer-tagline">مساعدك الذكي الشخصي — مستقل، آمن، ومفتوح المصدر.</span>
+    </div>
+
+    <div class="footer-links">
+      <span>المرحلة الحالية: <strong>Phase 1 &amp; 2 — Core Server, Agentic Loop &amp; Tools</strong></span>
+      <a href="http://localhost:8000/docs" target="_blank">مستندات API</a>
+      <button class="footer-settings-btn" id="open-settings-btn">الإعدادات</button>
+    </div>
+  </div>
+</footer>
+
+<script src="core_server/web_console/app.js"></script>
+</body>
+</html>

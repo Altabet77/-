@@ -1,0 +1,20 @@
+{
+  "name": "samir-android",
+  "version": "1.0.0",
+  "description": "سمير - المساعد الذكي لـ Android",
+  "main": "index.js",
+  "scripts": {
+    "build": "echo Built",
+    "sync": "npx cap sync android",
+    "open": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.2.2",
+    "@capacitor/core": "^6.2.2",
+    "@capacitor/splash-screen": "^6.0.0",
+    "@capacitor/status-bar": "^6.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.2.2"
+  }
+}
